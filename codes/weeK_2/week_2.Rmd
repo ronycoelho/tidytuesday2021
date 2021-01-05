@@ -1,0 +1,60 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("C:/r_files/tidytuesday2021/codes/)
+pacman::p_load(tidyverse, tidytuesdayR, janitor, scales, ggrepel)
+
+library(mdthemes)
+```
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load(2021, week = 2)
+
+dt <- tuesdata$transit_cost
+```
+
+
+```{r}
+dt2 <- dt %>%
+  select(e, real_cost, city, country, everything()) %>% 
+  mutate(real_cost = as.numeric(real_cost)) %>% 
+  arrange(desc(real_cost)) %>% 
+  head(10)
+```
+
+```{r}
+plot <- dt2 %>% 
+  mutate(tunnel_per = as.numeric(str_remove(tunnel_per, "%"))) %>% 
+  mutate(label = paste0(city, " (", country, ")\n", 
+                        "Cost/Km:", round(cost_km_millions, 2), "\n",
+                        start_year, "-", end_year))%>% 
+  ggplot(aes(length, real_cost)) +
+  geom_point(aes(color = tunnel_per), size = 5)+
+  geom_text_repel(aes(label = label),  
+                  box.padding = 1,
+                  color = "white")+
+  scale_color_viridis_c("% of line length completed")+
+  scale_y_continuous(limits = c(0, 90000), labels = dollar_format())+
+  coord_cartesian(clip = "off")+
+  guides(color = guide_legend(title.position = "top",
+                              title.theme = element_text(color = "white")))+
+  md_theme_modern_rc()+
+  theme(
+        legend.position = c(.8,.9),
+        legend.direction = "horizontal")+
+  labs(title = "Most expensive Transit Projects", 
+       x = "Km", y = "",
+       caption = "Source: Transit Costs Project |  #TidyTuesdayProject")
+```
+
+```{r}
+ggsave(plot = plot, filename = "week_2.png",width = 9, height = 6)
+```
+
