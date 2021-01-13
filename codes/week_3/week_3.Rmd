@@ -1,0 +1,142 @@
+---
+title: "TidyTemplate"
+date: 2021-01-12
+output: html_output
+---
+
+# TidyTuesday
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(tidytext)
+library(wordcloud2)
+library(extrafont)
+library(png)
+library(grid)
+library(patchwork)
+
+
+dir.create("C:/r_files/tidytuesday2021/codes/week_3")
+setwd("C:/r_files/tidytuesday2021/codes/week_3")
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+tt <- tt_load(last_tuesday())
+
+source <- "Source: Tate Art Museum | #TidyTuesday"
+
+art <- tt$artwork
+```
+
+
+# Glimpse Data
+
+Take an initial look at the format of the data available.
+
+```{r Glimpse}
+
+art %>% head() %>% 
+  map(glimpse)
+```
+
+
+```{r Wrangle}
+freqwords <- art %>% #head(1000) %>% 
+  unnest_tokens(output = "word",
+                input = title,
+                token = "words") %>% 
+  count(word, sort = T, name = "freq") %>% 
+  anti_join(stop_words, by = c("word" = "word")) %>% 
+  filter(word != "title")
+
+row.names(freqwords) <- freqwords$word
+
+freqwords <- filter(freqwords, freq > 100)
+freqwords <- filter(freqwords, word != "blank")
+
+shadesofwhite <- colorRampPalette(c("#FEFEFF", "#CED4DA"))
+
+shadesofwhite <- shadesofwhite(10)
+
+shadesofwhite <- rep_len(shadesofwhite, nrow(freqwords))
+
+background <- "#6C757D"
+
+font <- extrafont::fonts()[59]
+```
+
+# Visualize
+```{r Visualize}
+(img <- letterCloud(freqwords, word = "  T A T E  ", size = .1, 
+            minSize = ,        
+            minRotation = pi/2,
+            maxRotation = pi/2, 
+            rotateRatio = 1,
+            backgroundColor = background,
+            color = shadesofwhite,
+            #widgetsize = 10,
+            fontFamily = font, fontWeight = 'bold'))
+
+```
+
+# Save Image
+```{r}
+# I've tryied ths but it doesnt work. I've saved the image manually
+# https://www.r-graph-gallery.com/196-the-wordcloud2-library.html
+# library(webshot)
+# webshot::install_phantomjs()
+# library("htmlwidgets")
+
+# saveWidget(img,"tmp2.html")
+# 
+# # and in png or pdf
+# webshot("tmp2.html","fig_2.png", 
+#         delay =5, vwidth = 580, vheight=480)
+```
+
+
+```{r}
+d <- readPNG("imgtate.png")
+
+d <- rasterGrob(d)
+```
+
+```{r}
+(p <- ggplot() +
+  geom_blank() +
+  annotation_custom(d, xmax = 1.5) +
+  labs(
+    title = "Art Museum",
+    subtitle = "most frequent words in the titles of the piece of art \n Arts created from 1545 to 2012\n69.201 pieces of art",
+    caption = source
+  ) +
+  theme_void(base_family = font, base_size = 6) +
+  theme(
+    plot.background = element_rect(fill = background),
+    panel.background = element_rect(fill = background, color = background),
+    #plot.title.position = "panel",
+    plot.title = element_text(
+      color = "white",
+      hjust = 1,
+      vjust = -80
+    ),
+    plot.subtitle = element_text(color = "white",
+                                 hjust = 1),
+    plot.caption = element_text(color = "white"),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ))
+```
+
+```{r}
+ggsave(plot = p, filename = "week_3.png",width = 5, height = 3)
+```
+
