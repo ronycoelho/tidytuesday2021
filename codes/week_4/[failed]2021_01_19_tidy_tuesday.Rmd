@@ -1,0 +1,114 @@
+---
+title: "TidyTemplate"
+date: 2021-01-19
+output: html_output
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(patchwork)
+#library(gganimate)
+library(extrafont)
+library(ggwaffle)
+library(rlist)
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+loadfonts()
+
+font1 <- fonts()[20]
+#font2 <- fonts()[41]
+
+tt <- tt_load("2021-01-19")
+
+source <- "Source: {rKenyaCensus} by Shelmith Kariuki| #TidyTuesdayProject"
+```
+
+
+```{r}
+theme_set(
+    theme_void(base_family = font1) +
+    theme(#legend.position = "none",
+          plot.title.position = "plot",
+          plot.title = element_text(hjust =.5)) )
+```
+
+
+```{r}
+crops <- tt$crops
+```
+
+https://github.com/JuanmaMN/tidyverse-ggplot2/blob/master/geom_waffle/geom_waffle%20-%20TidyTuesday%2022-10-2019.R
+
+```{r Wrangle}
+crops.list <- crops %>% 
+  filter(SubCounty != "KENYA") %>% 
+  pivot_longer(cols = - SubCounty) %>% 
+  drop_na() %>% 
+  mutate(value = value/100) %>% 
+  group_by(SubCounty) %>% 
+  mutate(sum = sum(value)) %>% 
+  arrange(desc(sum)) %>% 
+  ungroup() %>% 
+  mutate(SubCounty = fct_lump(SubCounty, 10, w = sum))%>%
+  filter(SubCounty != "Other") %>% 
+  group_by(SubCounty) %>%
+  mutate(rank = case_when(
+    SubCounty == "MERU" ~ "group1",
+    SubCounty == "MURANG'A" ~ "group2",
+    SubCounty == "KAKAMEGA" ~ "group3",
+    SubCounty == "BUNGOMA" ~ "group4",
+    SubCounty == "KISII" ~ "group5",
+    SubCounty == "MACHAKOS" ~ "group6",
+    SubCounty == "KIAMBU" ~ "group7",
+    SubCounty == "NYERI" ~ "group8",
+    SubCounty == "EMBU" ~ "group9",
+    SubCounty == "KIRINYAGA" ~ "group10",
+    )) %>% 
+  ungroup() %>% 
+  group_split(rank, .keep = F)
+```
+
+
+```{r}
+fun_plots <- function(){
+  mylist <- list()  
+  for(i in 1:length(crops.list)){
+  #print(i)}
+  # prepare to waffle format
+  t <- crops.list[[i]] %>% 
+  uncount(value) %>% 
+  mutate(n = 1)       
+  # waffle format 
+  t1 <- waffle_iron(t, aes_d(group = name), rows = 50)
+  # plot
+  p <- ggplot(t1, aes(x, y, fill = group)) +
+    geom_waffle() +
+    coord_equal() +
+    labs(title = unique(t$SubCounty),
+         x = "", y = "")
+  # criar lista de plots
+  names <- paste0("plot_", i)
+  mylist[[names]] <- p
+  }  
+  return(mylist)
+}
+```
+
+
+```{r}
+r <- fun_plots()
+
+p1 <- r[[1]]
+
+p2 <- r[[2]]
+```
+
+
