@@ -1,0 +1,147 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidytuesdayR)
+library(extrafont) # for adding google font
+#library(ggrough)
+library(patchwork)
+library(ggsci)
+#library(rbokeh)
+```
+
+```{r}
+tt <- tt_load("2021-01-26")
+d <- tt$plastics
+
+caption <- "Source: Break Free from Plastic Project"
+```
+
+```{r}
+loadfonts()
+
+font <- fonts()[145]
+
+theme_set(theme_minimal(base_family = font) +
+          theme(title = element_text(color = "white"),
+           text= element_text(color = "white"),
+           axis.text =element_text(color = "white")))
+
+
+```
+
+
+```{r}
+vol <- d %>% 
+  count(year, wt = volunteers)
+
+type <- d %>% 
+  pivot_longer(cols = hdpe:pvc, 
+               names_to = "type", 
+             values_to = "qt") %>% 
+  count(year, type, wt = qt)
+  
+```
+
+```{r}
+p1 <- vol %>% 
+  ggplot(aes(x = as.factor(year), y = n))+
+  scale_y_continuous(labels = scales::number_format())+
+  geom_col(aes(fill = as.factor(year)))+
+  ggsci::scale_color_d3()+
+  ggsci::scale_fill_d3(alpha = .7)+
+#  theme_minimal()+
+  theme(legend.position = "none")+
+  labs(title = "# of volunteers",
+        #subtitle = "sub",
+        y = "",
+        x = "")
+```   
+
+
+```{r}
+(p2 <- type %>% 
+  ggplot(aes(x = type, y =n, 
+             fill = as.factor(year), 
+             color = as.factor(year)))+
+  geom_col(position = "dodge", width = .75)+
+  ggsci::scale_color_d3()+
+  ggsci::scale_fill_d3(alpha = .7)+
+  scale_y_continuous(labels = scales::number_format())+
+  coord_cartesian(clip = "off")+
+# theme_minimal()+
+  theme(legend.position = "none",
+        axis.text = element_text(size = 12))+
+  labs(title = "Types of plastics collected",
+        subtitle = "",
+        y = "Count  of plastics (see codes)",
+        x = ""))
+```
+
+```{r}
+#unique(type$type) 
+
+labels <- paste0(unique(type$type)[1]," - " ,"High density polyethylene count (Plastic milk containers, plastic bags, bottle caps, trash cans, \noil cans, plastic lumber, toolboxes, supplement containers)\n\n",
+       unique(type$type)[2], " - ", "Low density polyethylene count (Plastic bags, Ziploc bags, buckets, squeeze bottles,\n plastic tubes, chopping boards)\n\n",
+       unique(type$type)[3], " - ", "Category marked other count\n\n",
+       unique(type$type)[4], " - ", "Polyester plastic count (Polyester fibers, soft drink bottles, food containers (see plastic bottles)\n\n",
+       unique(type$type)[5], " - ", "Polypropylene count (Flower pots, bumpers, car interior trim, industrial fibers, carry-out beverage \ncups, microwavable food containers, DVD keep cases)\n\n",
+       unique(type$type)[6], " - ", "Polystyrene count (Toys, video cassettes, ashtrays, trunks, beverage/food coolers, beer cups, \nwine and champagne cups, carry-out food containers, Styrofoam)\n\n",
+       unique(type$type)[7], " - ", "PVC plastic count (Window frames, bottles for chemicals, flooring, plumbing pipes)")
+
+p3 <- ggplot()+
+  geom_blank()+
+  coord_cartesian(clip = "off")+
+  annotate(geom = "text", label = labels,
+            x = 0,
+            xmax = 1,
+           size = 3.5,
+            color = "white",
+#            xmax = 1,
+            y = -3,
+            hjust = 0)+
+  theme(axis.text = element_blank(),
+        plot.margin = unit(c(0,0,0,2), "cm"),
+        panel.grid = element_blank())+
+  labs(title = ,
+        #subtitle = "",
+        y = "Recycling codes",
+        x = "")
+```
+
+
+```{r}
+d <- (p1+p3)+
+  plot_layout(widths = c(1, 2))
+
+plot <- d/p2+
+  patchwork::plot_annotation(
+    title = "Break Free from Plastic Project",
+      subtitle = "The global movement envisioning a future free from plastic pollution",
+      caption = caption,
+      theme = theme(
+      plot.title = element_text(face = "bold", size = 20),
+      plot.subtitle = element_text(face = "italic"),
+      plot.background = element_rect(fill = "#5BC8E5",
+                                     color = "#5BC8E5"),
+      plot.margin = unit(c(1,1,1,1), "cm")))
+```
+
+```{r}
+
+ggsave("week_5.png",
+    plot = plot,
+    device = ragg::agg_png(width = 13, 
+            height = 7, 
+            units = "in", 
+            res = 300))
+```
+  
+  
