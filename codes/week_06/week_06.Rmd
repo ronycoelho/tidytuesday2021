@@ -1,0 +1,61 @@
+```{r}
+library(tidytuesdayR)
+library(tidyverse)
+library(scales)
+library(mdthemes)
+#library(ggsci)
+library(extrafont)
+```
+
+```{r}
+tt <- tidytuesdayR::tt_load(last_tuesday())
+
+dt <- tt$hbcu_all
+```
+
+```{r}
+caption <- "Source: Data.World"
+
+loadfonts()
+font <- fonts()[180]
+```
+
+```{r}
+glimpse(dt)
+
+dt <- dt %>% 
+  gather(metric, value, - Year) %>% 
+  rename(year = Year)
+```
+
+```{r}
+plot <- dt %>% 
+  filter(metric %in% c("Males", "Females")) %>% 
+  ggplot(aes(x = year, y = value, fill = metric)) +
+  geom_col(position = position_dodge(0.6), 
+           color = "gray",
+           width = .8)+
+  scale_y_continuous(labels = number_format())+
+  scale_fill_discrete("")+
+  md_theme_modern_rc(font)+
+  theme(
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        plot.title.position = "plot")+
+  labs(title = "Enrollment at HBCUs",
+       caption = caption,
+        y = "",
+        x = "")
+```
+
+```{r}
+setwd("C:/r_files/tidytuesday2021/codes/week_06")
+
+ggsave("week_06.png",
+    plot = plot,
+    device = ragg::agg_png(width = 7, 
+            height = 4, 
+            units = "in", 
+            res = 300))
+```
+
