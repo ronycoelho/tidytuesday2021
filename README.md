@@ -1,3 +1,6 @@
+# Week 7
+![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_07/week_07.png?raw=true)
+
 # Week 6
 ![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_06/week_06.png?raw=true)
 
