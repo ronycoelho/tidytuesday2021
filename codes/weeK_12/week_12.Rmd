@@ -1,0 +1,141 @@
+---
+title: "TidyTemplate"
+date: 2021-03-21
+output: html_output
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(ggshadow)
+```
+
+```{r Load}
+tt <- tt_load("2021-03-16")
+```
+
+```{r Readme, eval = interactive()}
+
+tt
+
+cap.source <- "Source: SteamCharts"
+```
+
+
+```{r Glimpse}
+tt %>% 
+  map(glimpse)
+```
+
+```{r Wrangle}
+dt <- tt$games
+
+dt %>% glimpse()
+
+dt %>% 
+  count(year, sort = T) %>% 
+    print(n = 300)
+
+dt <- dt %>% 
+  filter(year %in%  c(2020, 2019, 2018)) %>% 
+  mutate(month = fct_relevel(month, month.name)) %>% 
+  group_by(year, month) %>% 
+  summarise(diff = sum(gain, na.rm = T)) %>% 
+  ungroup() %>% 
+  arrange(year)
+```
+
+
+```{r Visualize}
+dt %>% 
+  mutate(pos = ifelse(diff >=0, diff, NA),
+         neg = ifelse(diff < 0, diff, NA)) %>% 
+  filter(year == 2020) %>% 
+  ggplot(aes(x = as.integer(month), y = diff))+
+  geom_ribbon(aes(ymin = 0, ymax = pos), fill = "blue")+
+  geom_ribbon(aes(ymin = neg, ymax = 0), fill = "red")+
+  scale_x_continuous(breaks = seq(1, 12, 1))+
+  geom_line()
+```
+
+```{r}
+dt %>% 
+  filter(year == 2020) %>% 
+  mutate(acummulative = cumsum(diff)) %>% 
+  pivot_longer(cols = c(diff, acummulative)) %>% 
+  ggplot(aes(x = month, y = value))+
+  geom_shadowline()
+```
+
+
+
+```{r}
+dput(dt.2)
+```
+
+  
+```{r}
+
+dados <- structure(list(year = c(2020, 2020, 2020, 2020, 2020, 2020, 2020, 
+2020, 2020, 2020, 2020, 2020), month = structure(1:12, .Label = c("January", 
+"February", "March", "April", "May", "June", "July", "August", 
+"September", "October", "November", "December"), class = "factor"), 
+    diff = c(167916.47, 58945.82, 432269.2, 532863.2, -434494, 
+    -493142.3, -50919.75, -207215.3, -278524.84, -77664.68, 161101.79, 
+    144261.69), signal = c("pos", "pos", "pos", "pos", "neg", 
+    "neg", "neg", "neg", "neg", "neg", "pos", "pos")), row.names = c(NA, 
+-12L), class = c("tbl_df", "tbl", "data.frame"))
+```
+
+
+```{r}
+dados <- ggplot_build(plot)
+
+dados.2 <- dados$data[[1]]
+
+dt <- dados.2[,c(1,7)]
+
+dt %>% 
+  mutate(signal = ifelse(ymax >=0, "pos", "neg")) %>% 
+  ggplot(aes(x = x, y = ymax))+
+  geom_area(aes(fill = signal))
+
+
+df <- read.table(header=T, text='  def.percent period  valence
+1   6.4827843   1984   neg
+2   5.8232425   1985   neg
+3   -2.4003260  1985   pos
+4   -3.5994399  1987   pos')
+
+
+ggplot(df, aes(x=period, y=def.percent)) +
+  geom_area(aes(fill=valence)) +
+  geom_line() + geom_point() + geom_hline(yintercept=0)
+```
+
+
+# Save Image
+
+```{r}
+# This will save your most recent plot
+ggsave(
+  filename = "My TidyTuesday Plot.png",
+  device = "png")
+```
+
+
+```{r}
+ggplot(filter( economics_long, variable %in% c('pop', 'unemploy') ), 
+    aes(date, value01-0.5, 
+        color = variable, 
+        fill=variable)) + 
+  ggshadow::geom_glowline() + 
+  #guides(color='none', shadowcolour='none', fill='none') + 
+    # theme(plot.background = element_rect(fill = "#190132"),
+    #        panel.background = element_rect(fill = "#190132")) 
+  NULL
+```
+

@@ -1,0 +1,107 @@
+```{r}
+library(extrafont)
+library(tidyverse)
+library(tidytuesdayR)
+```
+
+```{r}
+tt <- tt_load("2021-03-09")
+
+source.caption <- "Source: FiveThirtyEight"
+
+loadfonts()
+
+font <- fonts()[33]
+```
+
+# Explore
+```{r}
+movies <- tt$movies
+
+movies %>% 
+  count(binary, sort = T) %>% 
+  janitor::adorn_totals()
+
+movies %>% 
+  count(cle, sort = T) %>% 
+  janitor::adorn_totals()
+
+movies %>% 
+  count(test, sort = T) %>% 
+  janitor::adorn_totals()
+```
+
+# Manipulating
+```{r}
+(movies.2 <- movies %>% 
+  count(binary, clean_test, test) %>%
+  group_by(binary) %>% 
+  mutate(label.1 = paste0(binary, "\n(", sum(n), ")")) %>% 
+  ungroup() %>% 
+  group_by(clean_test) %>% 
+  mutate(label.2 = paste0(clean_test, "\n(", sum(n), ")")) %>% 
+  ungroup() %>% 
+  mutate(label.3 = paste0(test,  " (", n, ")")) %>% 
+  mutate(label.1 = fct_reorder(label.1, n),
+         label.2 = fct_reorder(label.2, n,.desc = T),
+        label.3 = fct_reorder(label.3, n, .desc = T)))
+```
+
+# Visualization
+```{r}
+plot <- ggplot(movies.2, aes(y = n,
+                     axis1 = label.1,
+                     axis2 = label.2,
+                     axis3 = label.3))+
+  geom_alluvium(aes(fill = binary, 
+                    color = test))+
+  geom_stratum(fill = "black", 
+               color = "grey",
+               alpha = .8,
+               #width = .5,
+  )+
+  scale_color_viridis_d()+
+  scale_x_continuous(
+    breaks = c(1, 2, 3),
+    label = c("Has passed?", "", "Bechdel Test outcome"),
+    position = "top")+
+  geom_text(stat = "stratum", 
+            color = "white",
+            aes(label = after_stat(stratum)))+
+  theme_minimal()+
+  theme(plot.title = element_text(color = "purple", 
+                                  face = "bold",
+                                  hjust = .5,
+                                  size = 22,
+                                  vjust = -3,
+                                  family = font),
+        axis.text = element_text(color = "purple", 
+                                 face = "bold",
+                                 hjust = .5),
+        axis.title.y = element_text(color = "purple",
+                                    angle = 0,
+                                    vjust = .95),
+        plot.caption = element_text(hjust = -0.13, color = "purple"),
+        plot.background = element_rect(color = "#F0F2F5", fill = "#F0F2F5"),
+        panel.background = element_rect(color = "#F0F2F5", fill = "#F0F2F5"),
+        plot.margin = margin(t = 1, b = 1, r =1, l= 1, unit = "cm"))+
+  guides(color = "none",
+         fill = "none")+
+  labs(title = "Bechdel Test",
+       subtitle = "",
+       y = "# of films tested",
+       x = "",
+       caption = source.caption
+  )
+```
+
+# Save
+```{r}
+ggsave("C:/r_files/tidytuesday2021/codes/week_11/week_11.png",
+    plot = plot,
+    device = ragg::agg_png(width = 16, 
+            height = 8, 
+            units = "in", 
+            res = 300))
+```
+
