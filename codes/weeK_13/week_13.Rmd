@@ -1,0 +1,87 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidytuesdayR)
+library(tidyverse)
+library(ggparliament)
+library(ggtext)
+library(extrafont)
+```
+
+```{r}
+tt <- tidytuesdayR::tt_load(x = "2021-03-23")
+
+caption <- "Source: Harvard's Dataverse"
+
+loadfonts(device = "win")
+
+font <- fonts()[116]
+```
+
+```{r}
+d <- tt$unvotes %>% 
+  left_join(tt$roll_calls) %>% 
+  left_join(tt$issues)
+
+d <- d %>% 
+  mutate(year = lubridate::year(date)) %>% 
+  filter(year == 2019,
+         short_name == "hr") %>% 
+  filter(unres == "A/RES/74/159") 
+```
+
+```{r}
+d <- d %>% 
+  add_count(country)
+
+d <- d %>% 
+  arrange(vote)
+
+d %>% glimpse()
+# type of parliament (horseshoe, semicircle, circle, classroom, opposing benches)
+seats <- ggparliament::parliament_data(election_data= d,
+                              type= "semicircle",
+                              parl_rows=10,
+                              party_seats=d$n)
+```
+
+```{r}
+dev.off()
+windows(width = 12, height = 6)
+plot <- ggplot(seats, aes(x , y, color=vote))+
+  geom_parliament_seats(size = 6)+
+  geom_text(aes(x, y, label = country_code), vjust = 0, color = "white")+
+  scale_color_manual(values = c("#f8333c", "#44af69"))+
+  theme_void()+
+  annotate("text", label = "A/RES/74/159", x =0, y=0.35, size = 10, color = "white")+
+  annotate("text", label = "Resolution", x =0, y=0.52, size = 3, color = "white")+
+  annotate("text", label = "Showing country code", x =0, y=0, size = 3, color = "white")+
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        plot.background = element_rect(fill = "#3F90DF", color = "#3F90DF"),
+        panel.background = element_rect(fill = "#3F90DF", color = "#3F90DF"),
+        plot.title = element_text(hjust = .5, color = "white", size = 15, family = font),
+        plot.subtitle =  element_markdown(hjust = .5, color = "white"),
+        plot.caption = element_text(color = "white", hjust = .95),
+        text = element_text(color = "white"),
+        plot.margin = margin(b = .5, unit = "cm"))+
+  labs(title = "\nVoting in the UN General Assembly",
+       subtitle = "<span style = 'font-size:12pt'>*Session 74, 18 Dec 2019*</span><br><br><span style = 'font-size:18pt'>Issue: Human rights and cultural diversity</span><br>",
+       color = "Vote",
+       caption = caption)
+```
+
+
+```{r}
+ggsave("C:/r_files/tidytuesday2021/codes/weeK_13/week_13.png",
+    plot = plot,
+    device = ragg::agg_png(width = 12, 
+            height = 6.5, 
+            units = "in", 
+            res = 300))
+```
+

@@ -1,0 +1,49 @@
+---
+title: "TidyTemplate"
+date: 2021-03-22
+output: html_output
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+
+```
+
+# Load the weekly Data
+```{r Load}
+tt <- tidytues
+
+issues <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-03-23/issues.csv')
+roll_calls <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-03-23/roll_calls.csv')
+unvotes <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-03-23/unvotes.csv')
+
+all <- unvotes %>% 
+  inner_join(roll_calls) %>% 
+  inner_join(issues)
+
+
+```
+
+
+```{r}
+all %>% 
+  glimpse()
+
+all %>% 
+  mutate(year = lubridate::year(date)) %>% 
+  filter(year == 2019,
+         descr == "Human rights and cultural diversity") %>% View()
+  #filter(country == "Brazil") %>% 
+  #count(descr, vote) %>% View()
+
+```
+
+
+```{r}
+
+```
+
