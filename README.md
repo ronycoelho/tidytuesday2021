@@ -1,6 +1,9 @@
 # Week 13
 ![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/weeK_13/week_13.png?raw=true)
 
+# Week 12
+![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/weeK_12/week_12.png?raw=true)
+
 # Week 11
 ![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_11/week_11.png?raw=true)
 
