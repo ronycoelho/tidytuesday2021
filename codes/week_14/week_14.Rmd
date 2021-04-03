@@ -1,0 +1,124 @@
+---
+title: "TidyTemplate"
+date: 2021-03-30
+output: html_output
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(extrafont)
+
+
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tt_load("2021-03-30")
+
+loadfonts()
+
+setwd("C:/r_files/tidytuesday2021/codes/week_14")
+```
+
+
+```{r Readme, eval = interactive()}
+
+tt
+
+cap.source <- "Source: The Pudding data"
+
+font <- fonts()[118]
+```
+
+
+# Glimpse Data
+
+Take an initial look at the format of the data available.
+
+```{r Glimpse}
+
+tt %>% 
+  map(glimpse)
+
+
+shades <- tt$allShades
+```
+
+# Wrangle
+
+```{r}
+shades %>% 
+  count(brand, sort = T) %>% 
+  tail(10)
+
+shades %>% 
+  arrange(lightness) %>% 
+  select(hex)
+
+shades.2 <- shades %>% 
+  select(brand, lightness, hex) %>% 
+  distinct() %>% 
+  add_count(brand) %>% 
+  mutate(brand = as.factor(brand),
+         brand = fct_reorder(brand, n)
+         ) %>% 
+  arrange(n, brand) %>% 
+  group_by(brand) %>% 
+  arrange(lightness) %>% 
+  mutate(index = row_number()) %>%  
+  ungroup()
+```
+
+
+```{r Visualize}
+plot <- shades.2 %>%  
+  ggplot(aes(brand, y = 1, group = index, fill = hex), show.legend = F) +
+  geom_bar(stat = "identity", color = alpha("white", .1))+
+  scale_fill_manual(values = as.character(shades.2$hex))+
+  guides(fill = "none")+
+  scale_y_continuous(breaks = seq(0,300, 100), limits = c(0,300))+
+  coord_cartesian(clip = "off")+
+  theme_classic()+
+  geom_text(aes(x = 1, y = 1, label = "Brands"),
+            hjust = 1.5, vjust = 4, 
+            color = "#3A2115", family = font)+
+  theme(axis.line.y = element_blank(),
+        axis.line.x = element_line(color = "#3A2115"),
+        axis.ticks.x =  element_line(color = "#3A2115"), 
+        axis.text.y = element_text(color = "#3A2115", 
+                                   face = "bold"),
+        axis.text.x = element_text(angle = 90, size = 8, 
+                                   hjust = 1,
+                                   vjust = 0,
+                                   color = "#3A2115"),
+        plot.margin = margin(1,.2,1,.2,"cm"),
+        plot.caption = element_text(color = "#3A2115", 
+                                    face = "italic"),
+        plot.title = element_text(hjust = .25, vjust = -10, size = 40, family = font, face = "bold", color = "#3A2115"),
+        )+
+  labs(title = "M a k e u p \n         S h a d e s",
+        y = "",
+        x = "",
+       caption = cap.source)
+```
+
+# Save Image
+
+Save your image for sharing. Be sure to use the `#TidyTuesday` hashtag in your post on twitter! 
+
+```{r}
+ggsave("week_14.png",
+    plot = plot,
+    device = ragg::agg_png(width = 22, 
+            height = 10, 
+            units = "in", 
+            res = 300))
+```
