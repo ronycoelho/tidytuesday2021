@@ -1,0 +1,92 @@
+---
+title: "TidyTemplate"
+date: 2021-04-07
+output: html_output
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(scales)
+library(tidytext)
+library(extrafont)
+```
+
+```{r Load}
+
+tt <- tt_load("2021-04-06")
+
+cap <- "Source: Our World in Data"
+
+loadfonts()
+
+font <- fonts()[191]
+```
+
+
+```{r}
+
+####
+brazil <- tt$brazil_loss  
+
+brazil <- brazil %>% 
+  pivot_longer(commercial_crops:small_scale_clearing,
+               names_to = "cause",
+               values_to = "loss")
+```
+
+
+```{r}
+# Create palette 
+pal <- paletteer::paletteer_d("nord::afternoon_prarie")
+
+pal <- colorRampPalette(pal)
+
+pal <- pal(12)[2:12]
+
+```
+
+
+```{r}
+plot <- brazil %>% #count(year)
+  group_by(year) %>% 
+  mutate(perc = loss/sum(loss)) %>% 
+  ungroup() %>% 
+  mutate(cause = str_to_sentence(str_replace_all(cause, "_", " "))) %>% 
+  mutate(cause = fct_reorder(cause, -loss)) %>% 
+  ggplot(aes(year, perc, fill = cause))+
+  scale_x_continuous(breaks = seq(2001, 2013, 2))+
+  scale_y_continuous(label = percent)+
+  scale_fill_manual(values = pal)+
+  #paletteer::scale_fill_paletteer_d("nord::afternoon_prarie")+
+  geom_area()+
+  theme_minimal(base_family = font)+
+  guides(fill = guide_legend(keyheight = unit(1.25, "cm")))+
+  theme(text = element_text(color = "white"),
+        title = element_text(color = "white"),
+        axis.text = element_text(color = "white", size = 12),
+        plot.title = element_text(size = 20), 
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12),
+        legend.position = "left",
+        legend.key.width = unit(1.25, "cm"),
+        legend.spacing = unit(2, "cm"),
+        plot.background = element_rect(fill = "#030b07"),
+        panel.background = element_rect(fill = "#030b07", color = "#030b07"),
+        plot.margin = margin(1,1.5,1,1,"cm"))+
+  labs(title = "Loss of Brazilian forest due to specific causes\n",
+       x = "", y = "", fill = "Causes\n", caption = cap)
+```
+
+```{r}
+ggsave("week_15.png",
+    plot = plot,
+    device = ragg::agg_png(width = 15, 
+            height = 7.5, 
+            units = "in", 
+            res = 300))
+```
+
