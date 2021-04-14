@@ -1,0 +1,89 @@
+---
+title: "TidyTemplate"
+date: 2021-04-13
+output: html_output
+---
+
+# TidyTuesday
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(ggridges)
+library(extrafont)
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tt_load("2021-04-13")
+
+source <- "Source: Blevins, Cameron; Helbock, Richard W., 2021, 'US Post Offices'"
+
+loadfonts()
+font <- fonts()[33]
+```
+
+
+```{r Readme, eval = interactive()}
+
+post <- tt$post_offices
+
+```
+
+
+```{r Wrangle}
+post.1 <- post %>% #head(100) %>% 
+  filter(!state %in% c("VAy", "MI/OH"),
+         established > 1000) %>% 
+  mutate(decade = 10* (established %/% 10) ) %>% 
+  count(state, decade, sort = T) %>% 
+  group_by(state) %>% 
+  mutate(state_av = mean(n)) %>% 
+  ungroup() %>% 
+  mutate(state = fct_reorder(state, state_av))
+
+```
+
+
+```{r Visualize}
+dev.off()
+windows(width = 12, height = 8)
+plot <- post.1 %>% 
+  #filter(decade >= 1700) %>% 
+  ggplot(aes(x = decade, y = state, fill = state_av))+
+  ggridges::geom_density_ridges(bandwidth  = 4, color = "white")+
+  scale_x_continuous(limits = c(1750, 2000), breaks = seq(1750, 2000, 50))+
+  paletteer::scale_fill_paletteer_c("ggthemes::Orange", direction = -1)+
+  #paletteer::scale_fill_paletteer_c("gameofthrones::greyjoy")+
+  ggthemes::theme_solarized_2(base_family = font)+
+  theme(axis.text.y = element_text(vjust = 0),
+        plot.title = element_text(hjust = .5, size = 20),
+        plot.subtitle = element_text(hjust = .5, size = 15),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        plot.margin = margin(1,.5,.5,.5, "cm"))+
+  guides(fill = guide_colorbar(barwidth = 15))+
+  labs(title = "USA Post Offices Established",
+        subtitle = "By States and decades - since 1700\n",
+        y = "",
+        x = "",
+       fill = "Average:\n\n",
+       caption = source)
+```
+
+# Save Image
+```{r}
+ggsave(here::here("codes", "week_16", "week_16.png"),
+    plot = plot,
+    device = ragg::agg_png(width = 10, 
+            height = 15, 
+            units = "in", 
+            res = 300))
+```
