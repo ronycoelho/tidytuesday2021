@@ -1,6 +1,10 @@
 [Following the TidyTuesday Project](https://github.com/rfordatascience/tidytuesday)
 
 ---------------------------------------------
+
+# Week 16
+![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_16/week_16.png?raw=true)
+
 # Week 15
 ![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_15/week_15.png?raw=true)
 
