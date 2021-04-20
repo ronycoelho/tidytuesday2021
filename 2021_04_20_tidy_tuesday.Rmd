@@ -1,0 +1,141 @@
+---
+title: "TidyTemplate"
+date: 2021-04-20
+output: html_output
+---
+
+```{r}
+library(tidyverse)
+library(tidytuesdayR)
+library(colorspace)
+library(extrafont)
+library(here)
+library(tidygraph)
+library(ggraph)
+```
+
+```{r}
+
+tidytuesdayR::last_tuesday()
+
+tt <- tidytuesdayR::tt_load("2021-04-20")
+
+loadfonts()
+font <- fonts()[76] #font 60 - cooperlate
+
+caption <- "Source:  Kaggle"
+```
+
+
+# 
+```{r}
+netflix_titles <- tt$netflix_titles
+
+# Exploring
+all_directors <- netflix_titles %>% 
+  drop_na(director) %>% 
+  count(director,sort = T) %>% 
+  filter(n > 1)
+```
+
+
+```{r}
+# Select directors
+all_directors <- all_directors %>% 
+  left_join(netflix_titles) %>% 
+  select(director, cast)
+
+# Count cast
+nmax <- max(stringr::str_count(all_directors$cast, ","), na.rm = T) + 1
+
+all_directors <- all_directors %>%  
+  separate(cast, sep = ",", into = paste0("col_", seq_len(nmax))) %>% 
+  pivot_longer(-director)
+
+all_directors <- all_directors %>% 
+  select(director, value) %>% 
+  drop_na()
+
+all_directors <- all_directors %>% 
+  mutate(value = str_trim(value, side = "both"))
+
+# Select Martin
+martin <- all_directors %>%
+  filter(director == "Martin Scorsese")
+
+# Select casting from Martin
+martin.cast <- all_directors %>% 
+  filter(value %in% martin$value)
+
+# 
+martin.cast %>% 
+  count(director, sort = T)
+```
+
+```{r}
+net  <- martin.cast %>% 
+  rename(from = director, to = value)
+```
+
+```{r}
+net.2 <- as_tbl_graph(net, directed = F)
+
+net.2 <- net.2 %>% 
+  activate(nodes) %>% 
+  mutate(size = ifelse(name %in% net$from, 2, 1),
+         color = ifelse(name %in% net$from, "Directors", "Cast"))
+
+# Create a vector size
+size.vector <- net.2 %>% 
+  activate(nodes) %>% 
+  mutate(size = ifelse(name %in% net.2$from, 2, 1.8)) %>% 
+  pull(size)
+
+# Make first bigger
+size.vector[1] <- 5
+```
+
+# 
+```{r}
+theme_set(theme_void(base_family = font)+
+          theme(plot.background = element_rect(color = "#E50914", fill = "black", size = 2),
+        panel.background = element_rect(color = "black", fill = "black"),
+        legend.text = element_text(color = "white"),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        plot.title = element_text(hjust = .5, color = "#E50914", size = 20 ),
+        plot.subtitle = element_text(hjust = .5, 
+                                     color = "#E50914", size = 15),
+        plot.caption = element_text(hjust = .5, color = "white"),
+        plot.margin = margin(1,1,1,1, "cm")))
+
+```
+
+
+# 
+```{r}
+plot.net <- ggraph(net.2, layout = 'nicely')+
+  geom_edge_link2(color = "#E50914")+
+  geom_node_point(aes(color = color), size = .5)+
+  geom_node_point(size = 1, color = "#E50914")+
+  geom_node_text(aes(label = name, color = color),
+                 size = size.vector,
+                 check_overlap = T,
+                 fontface = "bold",
+                 show.legend = F)+
+  scale_color_manual(values = c("#a7c5fa", "white"))+
+    guides(color = guide_legend(override.aes = list(size=5)))+
+  labs(title = "NETFLIX's directors and cast network",
+       subtitle = "Connections from Martin Scorsese\n",
+       caption = caption)
+```
+
+```{r}
+  ggsave(here("codes", "week_17", "week_17.png"),
+    plot = plot.net,
+    device = ragg::agg_png(width = 12, 
+            height = 8, 
+            units = "in", 
+            res = 300))
+```
+
