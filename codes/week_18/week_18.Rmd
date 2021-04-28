@@ -1,0 +1,124 @@
+---
+title: "TidyTemplate"
+date: 2021-04-27
+output: html_output
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(ggstream)
+library(mdthemes)
+library(paletteer)
+library(extrafont)
+library(here)
+
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+dir.create(here("codes", "week_18"))
+
+tt <- tt_load("2021-04-27")
+
+caption <- "Source: Gentry *et al.*"
+
+loadfonts()
+
+
+font <- fonts()[206]
+```
+
+
+```{r Readme, eval = interactive()}
+
+tt
+
+```
+
+
+```{r Glimpse}
+dep <- tt$departures
+
+dep %>% head() %>% 
+  glimpse()
+```
+
+
+```{r Wrangle}
+dep %>% 
+  count(departure_code)
+
+dep <- dep %>% 
+mutate(
+    reason = case_when(
+      departure_code == 1 ~ "death",
+      departure_code == 2 ~ "illness",
+      departure_code == 3 ~ "dismissed for job performance",
+      departure_code == 4 ~ "dismissed for legal violations or concerns",
+      departure_code == 5 ~ "retired",
+      departure_code == 6 ~ "new opportunity",
+      departure_code == 7 ~ "other",
+      departure_code == 8 ~ "missing",
+      departure_code == 9 ~ "execucomp error",
+    ))
+
+dep.2 <- dep %>% #head() %>% glimpse()
+  drop_na(reason) %>% 
+  filter(reason != "other") %>% 
+  filter(reason != "missing") %>% 
+  filter(reason != "execucomp error") %>% 
+  count(reason, fyear, sort = T)
+
+dep.2 %>% 
+  count(reason, wt = fyear)
+```
+
+
+```{r}
+dev.off()
+windows(width = 12, height = 8)
+
+labels_fill <- c("death", "dismissed for<br>job performance", 
+            "dismissed for<br>legal violations <br>or concerns",
+            "illness", "new opportunity", "retired")
+
+plot.1 <- dep.2 %>% 
+  filter(fyear < 2020 & fyear > 1990) %>% 
+  ggplot(aes(fyear, n, fill = reason))+
+  ggstream::geom_stream(type = "proportional",
+                        extra_span = .2, 
+                        true_range = "none", 
+                        show.legend = T)+
+  paletteer::scale_fill_paletteer_d(palette = "ggthemes::calc",
+                                    labels = labels_fill)+
+  #ggstream::geom_stream_label(aes(label = reason))+
+  mdthemes::md_theme_brooklyn99()+
+  theme(title = element_text(family = font),
+        text = element_text(family = font),
+        #plot.title = element_text(),
+        legend.position = "bottom",
+        legend.key = element_rect(color = "white"),
+        legend.background = element_rect(color = "white"),
+        plot.margin = margin(1,1,.3,1, "cm"))+
+  guides(fill = guide_legend(direction = "horizontal", nrow = 1, title.position = "top"))+
+  labs(title = "<span style = font-size:22pt>Reasons of CEO departures from 1.500 firms\n\n</span>",
+       caption = caption, x = "", y = "proportion", fill = "Reasons:")
+
+```
+
+```{r}
+  ggsave(here("codes", "week_18", "week_18.png"),
+    plot = plot.1,
+    device = ragg::agg_png(width = 12, 
+            height = 8, 
+            units = "in", 
+            res = 300))
+```
+
