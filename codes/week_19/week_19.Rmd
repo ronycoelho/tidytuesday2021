@@ -1,0 +1,169 @@
+---
+title: "TidyTemplate"
+date: 2021-05-04
+output: html_output
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(patchwork)
+library(here)
+library(extrafont)
+
+
+
+```
+
+```{r Load}
+dir.create(here("codes", "week_19"))
+setwd(here("codes", "week_19"))
+
+tt <- tt_load("2021-05-04")
+
+loadfonts()
+
+font <- fonts()[38]
+
+cap.source <- "Source:  Water Point Data Exchange"
+```
+
+```{r Readme, eval = interactive()}
+
+water <- tt$water
+
+water %>% glimpse()
+
+water %>% 
+  count(installer, sort = T)
+
+improved <- water %>% 
+  filter(facility_type == "Improved") %>% 
+  #count(facility_type, sort = T) %>% 
+  count(country_name, installer, install_year, sort = T) %>% 
+  drop_na()
+
+improved.2 <- improved %>% 
+  mutate(installer = recode(installer, 
+                            "WaterAid" = "Water Aid",
+                            ":Don't know" = "Other",
+                  "Government/woreda/" = "Government /Woreda/"))
+
+improved.2 <- improved.2 %>% 
+  mutate(installer = 
+           ifelse(str_detect(installer, "nknown"), "Unknow", installer)) %>% 
+  filter(install_year > 1980)
+
+improved.2 <- improved.2 %>% 
+  filter(!country_name %in% c("South Africa" , "Nigeria", "Burkina Faso"))
+
+improved.2 <- improved.2 %>% 
+  mutate(country_name = fct_reorder(country_name, n, .fun = sum ))
+
+improved.2 <- improved.2 %>% 
+  mutate(installer = str_sub(installer, start = 1, end = 20))
+```
+
+
+```{r}
+theme_set(theme_minimal(base_family =  font)+
+          theme(plot.title = element_text(hjust = .5, face = "bold", 
+                                          size = 12, color = "white"),
+                text = element_text(color = "white"),
+                title = element_text(color = "white"),
+                axis.title = element_blank(),
+                axis.text.y = element_blank(),
+                axis.text.x = element_text(face = "bold", size = 8),
+                panel.grid = element_blank(),
+                legend.position = "bottom",
+                legend.direction = "horizontal",
+                plot.margin = margin(1,1,1,1, "cm")))
+
+back.color <- "#5BB1FF"
+```
+
+
+```{r}
+my_plot <- function(data, country = NULL){
+  data %>%    
+  filter(country_name == country) %>% 
+  mutate(installer = fct_lump_n(installer, 5)) %>%
+  mutate(installer = fct_reorder(installer, n)) %>% 
+  group_by(installer, install_year) %>% 
+  summarise(sum = sum(n)) %>% 
+  ungroup() %>% 
+  ggplot(aes(install_year, sum, fill = installer))+
+  ggstream::geom_stream()+
+  paletteer::scale_fill_paletteer_d("ggthemes::Classic_Cyclic")+
+  scale_x_continuous(limits = c(1980, 2021), breaks = seq(1980, 2020, 10))+  
+  #theme(plot.background = element_rect(color = "white",                 
+   #                                    linetype = "dashed", size = .5))+
+  labs(title = country, fill = "")+  
+  guides(fill = guide_legend(ncol =  2))
+}
+```
+
+
+```{r}
+countries.names <- levels(fct_rev(improved.2$country_name))
+
+for (i in seq_along(countries.names)) {
+  assign(paste0("plot_",letters[i]), my_plot(data = improved.2, country = countries.names[i]))  
+}
+
+plot_a
+```
+
+```{r}
+list.of.plots <- mget(ls(pattern = "plot_"))
+```
+
+```{r}
+final.plot <- patchwork::wrap_plots(list.of.plots, ncol = 4)+
+  plot_annotation(title = "Water Sources", 
+                  subtitle = "Improved water access by country and installer",
+                  
+                  caption = cap.source, 
+                  theme = 
+                    theme(plot.background = element_rect(color = back.color,
+                                                         fill = back.color),
+                          plot.title = element_text(hjust = 0, size = 40),
+                          plot.subtitle = element_text(hjust = 0, size = 20)))
+```
+
+```{r}
+ggsave("week_19.png",
+    plot = final.plot,
+    device = ragg::agg_png(width = 15, 
+            height = 20, 
+            units = "in", 
+            res = 300))
+
+dev.off()
+```
+
+
+
+#################################
+# Failed
+```{r}
+my.list.plot <- function(list.of.countries){
+  my.list <- list()
+  for(i in seq_along(list.of.countries)){
+  print(list.of.countries[i])  
+  plot <- my_plot(data = improved.2, country = i)
+  my.list[[i]] <- assign(x = paste0("plot_", i), plot) 
+}
+  return(my.list)
+}
+
+```
+
+
+```{r}
+
+```
+

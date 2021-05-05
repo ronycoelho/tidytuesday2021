@@ -108,13 +108,13 @@ plot.1 <- dep.2 %>%
         legend.background = element_rect(color = "white"),
         plot.margin = margin(1,1,.3,1, "cm"))+
   guides(fill = guide_legend(direction = "horizontal", nrow = 1, title.position = "top"))+
-  labs(title = "<span style = font-size:22pt>Reasons of CEO departures from 1.500 firms\n\n</span>",
+  labs(title = "<span style = font-size:22pt>Reasons of CEO departures from 1.500 firms\n</span>",
        caption = caption, x = "", y = "proportion", fill = "Reasons:")
 
 ```
 
 ```{r}
-  ggsave(here("codes", "week_18", "week_18.png"),
+ggsave(here("codes", "week_18", "week_18.png"),
     plot = plot.1,
     device = ragg::agg_png(width = 12, 
             height = 8, 
