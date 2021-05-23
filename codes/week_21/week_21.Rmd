@@ -1,0 +1,254 @@
+---
+title: "TidyTemplate"
+date: 2021-05-22
+output: html_output
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(lubridate)
+library(mdthemes)
+library(scales)
+library(patchwork)
+library(here)
+options(scipen = 9999)
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+tt <- tt_load("2021-05-18")
+
+dir.create(here("codes", "week_21"))
+setwd(here("codes", "week_21"))
+```
+
+
+```{r Readme, eval = interactive()}
+survey <- tt$survey
+```
+
+
+```{r Glimpse}
+survey %>% 
+  count(highest_level_of_education_completed)
+
+survey %>% 
+  count(overall_years_of_professional_experience)
+
+survey %>% 
+  count(years_of_experience_in_field)
+
+survey %>% 
+  count(industry, sort = T)
+```
+
+```{r}
+# This trick I've learned from David Robinson: https://www.youtube.com/watch?v=2HpRXIpU4jI&t=568s
+
+survey <- survey %>% 
+  mutate(timestamp = mdy_hms(timestamp)) %>% 
+  mutate(age_category = fct_relevel(
+    fct_reorder(how_old_are_you, parse_number(how_old_are_you)), "under 18"))
+survey %>% 
+  count(age_category)
+```
+
+
+```{r}
+survey <- survey %>% 
+  drop_na(years_of_experience_in_field) %>% 
+  mutate(years.of.exp =
+    fct_reorder(years_of_experience_in_field, parse_number(years_of_experience_in_field))) 
+```
+
+# Industry
+```{r}
+p.1 <- survey %>%
+  drop_na(industry) %>% 
+  mutate(industry = fct_lump(industry, 10)) %>% 
+  filter(annual_salary < 300000) %>% 
+  mutate(industry = fct_reorder(industry, annual_salary,.fun = median)) %>%
+  group_by(industry) %>% 
+  mutate(median_salary = median(annual_salary)) %>%
+  ungroup() %>% 
+  mutate(general_median = mean(annual_salary) ) %>% 
+  ggplot(aes(x = industry, y = annual_salary, fill = median_salary))+
+  geom_hline(aes(yintercept = general_median), linetype = "dashed", color="white")+
+  geom_text(
+          aes(y= general_median+7500), x = .7, label = "Average"  , color="white")+
+  geom_boxplot(notch = T, varwidth = T, color="white")+
+  stat_summary(fun.y=mean, geom="point", shape=20, size=5, color="white", fill="gray10")+
+ scale_x_discrete(labels = scales::wrap_format(10))+
+  scale_y_continuous(labels = scales::dollar_format())+
+  viridis::scale_fill_viridis() +
+  labs(title = "INDUSTRY", y = "Annual Salary\n", x = "Industry", 
+       fill = "Median Salary")+
+  hrbrthemes::theme_modern_rc(plot_title_size = 20, plot_title_face = "bold")+
+  theme(axis.text = element_text(face = "bold", color = "white"))+
+  guides(fill = guide_legend())
+
+
+```
+
+# Years of experience
+```{r}
+p.2 <- survey %>%
+  filter(annual_salary < 300000) %>% 
+  group_by(years.of.exp) %>% 
+  mutate(median_salary = median(annual_salary)) %>%
+  ungroup() %>% 
+  mutate(general_median = mean(annual_salary) ) %>% 
+  ggplot(aes(x = years.of.exp, y = annual_salary, fill = median_salary))+
+  geom_hline(aes(yintercept = general_median), linetype = "dashed", color="white")+
+  geom_text(
+          aes(y= general_median+7500), x = .7, label = "Average"  , color="white")+
+  geom_boxplot(notch = T, varwidth = T, color="white")+
+  stat_summary(fun.y=mean, geom="point", shape=20, size=5, color="white", fill="gray10")+
+ scale_x_discrete(labels = scales::wrap_format(10))+
+  scale_y_continuous(labels = scales::dollar_format())+
+  viridis::scale_fill_viridis() +
+  labs(title = "YEARS OF EXPERIENCE", y = "Annual Salary\n", x = "years.of.exp", 
+       fill = "Median Salary")+
+  hrbrthemes::theme_ft_rc(plot_title_size = 20, plot_title_face = "bold")+
+  theme(axis.text = element_text(face = "bold", color = "white"))+
+  guides(fill = guide_legend())
+```
+
+# Education
+```{r}
+p.3 <- survey %>%
+  drop_na(highest_level_of_education_completed) %>% 
+  mutate(education = highest_level_of_education_completed) %>% 
+  filter(annual_salary < 300000) %>% 
+  mutate(education = fct_reorder(education, annual_salary,.fun = median))%>%
+  group_by(education) %>% 
+  mutate(median_salary = median(annual_salary)) %>%
+  ungroup() %>% 
+  mutate(general_median = mean(annual_salary)) %>% 
+  ggplot(aes(x = education, y = annual_salary, fill = median_salary))+
+  geom_hline(aes(yintercept = general_median), linetype = "dashed", color="white")+
+  geom_text(
+          aes(y= general_median+7500), x = .7, label = "Average"  , color="white")+
+  geom_boxplot(notch = T, varwidth = T, color="white")+
+  stat_summary(fun.y=mean, geom="point", shape=20, size=5, color="white", fill="gray10")+
+ scale_x_discrete(labels = scales::wrap_format(10))+
+  scale_y_continuous(labels = scales::dollar_format())+
+  viridis::scale_fill_viridis() +
+  labs(title = "EDUCATION", y = "Annual Salary\n", x = "Education", 
+       fill = "Median Salary")+
+  hrbrthemes::theme_modern_rc(plot_title_size = 20, plot_title_face = "bold")+
+  theme(axis.text = element_text(face = "bold", color = "white"))+
+  guides(fill = guide_legend())
+```
+
+# Race
+```{r}
+p.4 <- survey %>%
+  drop_na(race) %>% 
+  mutate(race = fct_lump(race, 4)) %>% 
+  filter(annual_salary < 300000) %>% 
+  mutate(race = fct_reorder(race, annual_salary,.fun = median)) %>%
+  group_by(race) %>% 
+  mutate(median_salary = median(annual_salary)) %>%
+  ungroup() %>% 
+  mutate(general_median = mean(annual_salary) ) %>% 
+  ggplot(aes(race, annual_salary, fill = median_salary)) +
+  geom_hline(aes(yintercept = general_median), linetype = "dashed", color="white")+
+  geom_text(
+          aes(y= general_median+7500), x = 1.6, label = "Average"  , color="white")+
+  geom_boxplot(notch = T, varwidth = T, color="white")+
+  stat_summary(fun.y=mean, geom="point", shape=20, size=5, color="white", fill="gray10")+
+  scale_x_discrete(labels = scales::wrap_format(25))+
+  scale_y_continuous(labels = scales::dollar_format())+
+  viridis::scale_fill_viridis() +
+  labs(title = "RACE", y = "Annual Salary\n", x = "Race", fill = "Median Salary")+
+  hrbrthemes::theme_ft_rc(plot_title_size = 20, plot_title_face = "bold")+
+  theme(axis.text = element_text(face = "bold", color = "white"))+
+  guides(fill = guide_legend(title.position = "top"))
+```
+
+# Gender
+```{r}
+p.5 <- survey %>%
+  drop_na(gender) %>% 
+  filter(annual_salary < 300000) %>% 
+  filter(gender != "Prefer not to answer") %>% 
+  mutate(gender = fct_reorder(gender, annual_salary,.fun = median)) %>%
+  group_by(gender) %>% 
+  mutate(median_salary = median(annual_salary)) %>%
+  ungroup() %>% 
+  mutate(general_median = mean(annual_salary) ) %>% 
+  ggplot(aes(gender, annual_salary, fill = median_salary)) +
+  geom_hline(aes(yintercept = general_median), linetype = "dashed", color="white")+
+  geom_text(
+          aes(y= general_median+7500), x = .7, 
+          label = "Average"  , color="white")+
+  geom_boxplot(notch = T, varwidth = T, color="white")+
+  stat_summary(fun.y=mean, geom="point", shape=20, size=5, color="white", fill="gray10")+
+  scale_x_discrete(labels = scales::wrap_format(30))+
+  scale_y_continuous(labels = scales::dollar_format())+
+  viridis::scale_fill_viridis() +
+  labs(title = "GENDER", y = "Annual Salary\n", x = "Gender", 
+       fill = "Median Salary")+
+  hrbrthemes::theme_modern_rc(plot_title_size = 20, plot_title_face = "bold")+
+  theme(axis.text = element_text(face = "bold", color = "white"))+
+  guides(fill = guide_legend())
+```
+
+# Age
+```{r}
+p.6 <- survey %>% 
+  drop_na(age_category) %>% 
+  filter(annual_salary < 300000) %>% 
+  group_by(age_category) %>% 
+  mutate(median_salary = median(annual_salary)) %>%
+  ungroup() %>% 
+  mutate(general_median = mean(annual_salary) ) %>% 
+  ggplot(aes(x = age_category, y = annual_salary, fill = median_salary))+
+  geom_hline(aes(yintercept = general_median), linetype = "dashed", color="white")+
+  geom_text(
+          aes(y= general_median+7500), x = .7, label = "Average"  , color="white")+
+  geom_boxplot(notch = T, varwidth = T, color="white")+
+  stat_summary(fun.y=mean, geom="point", shape=20, size=5, color="white", fill="gray10")+
+ scale_x_discrete(labels = scales::wrap_format(10))+
+  scale_y_continuous(labels = scales::dollar_format())+
+  viridis::scale_fill_viridis() +
+  labs(y = "Annual Salary\n", x = "Age", 
+       fill = "Median Salary",
+       title = "AGE")+
+  hrbrthemes::theme_ft_rc(plot_title_size = 20, plot_title_face = "bold")+
+  theme(axis.text = element_text(face = "bold", color = "white"))+
+  guides(fill = guide_legend())
+```
+
+
+# 
+```{r}
+final.plot <- (p.1 + p.2 + p.3) /
+  (p.4 + p.5 + p.6)+
+  plot_annotation(title = "Salary Survey", caption =  "Source: Ask a Manager Survey",
+  theme = theme(plot.margin = margin(.8,.2,.5,.2, "cm"),
+                plot.background = element_rect(color = "#333333", fill = "#333333"),
+                plot.title = element_text(size = 40, color = "white",
+                                          face = "bold"),
+                plot.caption = element_text(size = 20, color = "white", face = "bold")))
+
+```
+
+#
+```{r}
+ggsave("week_21.png",
+    plot = final.plot,
+    device = ragg::agg_png(width = 45, 
+            height = 15, 
+            units = "in", 
+            res = 300))
+```
+
