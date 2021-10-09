@@ -1,0 +1,109 @@
+```{r}
+pacman::p_load(tidytuesdayR, tidyverse, treemapify, viridis, gganimate, ggtext)
+```
+
+
+```{r}
+#save.image("tidytuesday.41.RData")
+
+#load("tidytuesday.41.RData")
+```
+
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2021-10-05')
+
+source <- "Source: Data.World | TidyTuesday"
+
+#extrafont::loadfonts(device="win")
+fonts <- extrafont::fonts()[154]
+```
+
+```{r}
+nurses <- tuesdata$nurses %>% janitor::clean_names()
+```
+
+# Exploring
+```{r}
+nurses %>% count(year, sort = T)
+
+#
+nurses %>% 
+  count(state, year, total_employed_rn) %>% 
+  arrange(desc(total_employed_rn))
+```
+
+
+```{r}
+theme_set(theme_light() +
+          theme(plot.title =  element_markdown(family = fonts, 
+                                                size = 20, 
+                                                color = "#22223b"),
+                plot.subtitle = element_markdown(size = 15),
+                plot.caption = element_text(size = 15),
+                text = element_text(color = "#22223b"),
+                legend.position = "bottom",
+                legend.direction = "horizontal",
+                legend.key.width = unit(2,"cm"),
+                legend.background = 
+                  element_rect(color = "transparent",
+                               fill = "transparent"),
+                plot.background = element_rect(color = "#fff0f3",
+                                                fill = "#fff0f3"),
+                panel.background = element_rect(color = "#fff0f3",
+                                                fill = "#fff0f3"),
+                plot.margin = margin(1,1,1,1, "cm")))
+
+options(scipen = 999)
+```
+
+
+```{r}
+range(nurses$annual_salary_avg, na.rm = T)
+
+breaks.vector <- seq(20000, 120000, by = 20000)
+```
+
+
+```{r}
+p <- nurses %>%
+#  slice_sample(prop = .3) %>% 
+  mutate(year = as.integer(year)) %>% 
+  select(state, year, total_employed_rn, annual_salary_avg) %>% 
+  add_count(state,  year, wt = total_employed_rn, name = "total_employed_rn") %>%  
+  arrange(desc(total_employed_rn)) %>%
+  drop_na() %>% 
+  distinct() %>% 
+  #filter(year == 2004) %>% 
+  ggplot(aes(
+    label = state,
+    area = total_employed_rn,
+    fill = annual_salary_avg))+
+  geom_treemap(layout = "fixed", color = "white")+
+  geom_treemap_text(layout = "fixed", place = "centre", grow = TRUE, colour = "white", min.size = 2) + 
+  scale_fill_viridis_c(option = "C", breaks = breaks.vector, labels = scales::dollar_format(), direction = -1)+
+  guides(fill = guide_legend(title.position="top",
+                             title.theme = element_text(size = 15, 
+                                                        hjust = .5),
+                             title.hjust = .5,
+                             nrow = 1,
+                             label.position = "bottom"))+
+  transition_time(year) +
+  ease_aes('linear') +
+  exit_fade()+
+  labs(subtitle = "Year: 
+       <span style = 'font-size:20pt; color:red'>{frame_time}</span>",
+       title = "<b>**Proportion of registered *NURSES* in states of USA**</b><br> 
+       <span style = 'font-size:15pt'> *and annual salary* average</span>",
+       fill = "Annual salary average",
+       caption = source)
+#p
+```
+
+
+```{r}
+gc()
+anim_save("week_41.gif", p, 
+          end_pause = 2, 
+          width = 25, height = 18, units = "cm", res = 150)
+```
