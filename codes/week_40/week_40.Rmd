@@ -1,0 +1,135 @@
+```{r}
+pacman::p_load(tidytuesdayR, tidyverse, ggtext, patchwork)
+```
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2021-09-28')
+```
+
+
+```{r}
+papers <- tuesdata$papers
+paper_authors <- tuesdata$paper_authors
+authors <- tuesdata$authors
+paper_programs <- tuesdata$paper_programs
+programs <- tuesdata$programs
+
+```
+
+
+```{r}
+# From https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-09-28/readme.md
+joined_df <- left_join(papers, paper_authors) %>% 
+  left_join(authors) %>% 
+  left_join(paper_programs) %>% 
+  left_join(programs)%>% 
+  mutate(
+    catalogue_group = str_sub(paper, 1, 1),
+    catalogue_group = case_when(
+      catalogue_group == "h" ~ "Historical",
+      catalogue_group == "t" ~ "Technical",
+      catalogue_group == "w" ~ "General"
+    ),
+    .after = paper
+  )
+```
+
+
+```{r}
+joined_df %>% head() %>% kableExtra::kable() %>% kableExtra::kable_material_dark()
+```
+
+```{r}
+dt <- joined_df %>% 
+  count(year, program_desc, catalogue_group, sort = T) %>%
+  mutate(program_desc = fct_reorder(program_desc, .x = n, .fun = sum, .desc = T),
+         catalogue_group = fct_reorder(catalogue_group, .x = n, .fun = sum, .desc = T)) %>% 
+  drop_na()
+```
+
+
+```{r}
+theme_set(theme_minimal())
+
+library(ggsci)
+
+scales::show_col(pal_npg("nrc")(10))
+
+cores.1 <- pal_npg("nrc")(7)[c(3:5)]
+
+windowsFonts(font = windowsFont("Bodoni MT Black")) 
+```
+
+
+```{r}
+temp.label <- paste0("<span style = 'font-size:20pt; color:", cores.1,"'>")
+
+labels <- c("General" = paste0(temp.label[1], "**General**</span>"),
+            "Technical" = paste0(temp.label[2], "**Thecnical**</span>"), 
+            "Historical" = paste0(temp.label[3], "**Historical**</span>"))
+
+p1 <- dt %>% 
+  ggplot(aes(year, n))+
+  geom_point(color = "gray50", alpha = .5)+
+  facet_wrap(vars(catalogue_group), labeller = as_labeller(labels))+
+  theme(strip.text = element_markdown(),
+        axis.text = element_text(color = "#91472E"))+
+  labs(x = "", y = "")
+```
+
+
+```{r}
+dt.2 <- dt %>% 
+    mutate(label = str_wrap(program_desc, width = 20)) 
+
+program.label <- as.character(unique(dt.2$label)) 
+
+names(program.label) <- as.character(unique(dt.2$program_desc))
+
+p2 <- dt.2 %>%   
+  ggplot(aes(year, n))+
+    geom_point(aes(fill = catalogue_group), shape = 21,  color = "gray100", show.legend = F)+
+    scale_fill_manual(values = cores.1)+
+    coord_cartesian(clip = "off")+
+    facet_wrap(vars(program_desc), nrow = 3, 
+               strip.position = "left", 
+               labeller = as_labeller(program.label))+
+    labs(x = "", y = "", title = "Programs")+
+    theme(
+      plot.margin = margin(1,.5,.5,.5, "cm"),
+      plot.title = element_text(family = "font", color = "#91472E" ),
+      axis.text = element_text(color = "#91472E"),
+      axis.text.x = element_text(angle = 90),
+      strip.text = element_text(color = alpha("#91472E", .5))
+    )
+```
+
+
+```{r}
+temp.label.2 <- paste0("<span style = 'font-size:10pt; color:", cores.1,"'>")
+
+subtitle.label <- paste0("By group (", paste0(temp.label.2[1], "**General**</span>"),
+                         ", ", paste0(temp.label.2[2], "**Thecnical**</span>"), " or ",
+                                      paste0(temp.label.2[3], "**Historical**</span>"))
+
+
+final.plot <- p1/p2 + 
+  plot_layout(heights = c(1,3))+
+  plot_annotation(title = "Economic Papers",
+                        subtitle = paste0(subtitle.label, ") and programs"),
+                        caption = "Source: National Bureau of Economic Research (NBER)",
+                        theme = theme(plot.subtitle = element_markdown(face = "italic"),
+                                      plot.title = element_text(family = "font", size = 20),
+                                      title = element_text(color = "#91472E"),
+                                      text = element_text(color = "#91472E"),
+                                      plot.margin = margin(1,.5,1,.5)))
+```
+
+
+```{r}
+ggsave(filename = "week_40.png", 
+       plot = final.plot, 
+       device = ragg::agg_png(
+       width = 16, height = 9, units = "in"))
+```
+
