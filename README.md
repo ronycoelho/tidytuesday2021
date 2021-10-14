@@ -2,6 +2,9 @@
 
 ---------------------------------------------
 
+# Week 42
+![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_42/week_42.png?raw=true)
+
 # Week 41
 ![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_41/week_41.gif?raw=true)
 
