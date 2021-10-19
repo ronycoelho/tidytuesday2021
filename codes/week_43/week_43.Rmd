@@ -1,0 +1,101 @@
+```{r}
+setwd("C:/rstats/tidytuesday/week_43")
+
+pacman::p_load(tidytuesdayR, tidyverse, ggmap, gganimate, ggtext, ggimage, here)
+```
+
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2021-10-19')
+
+windowsFonts(font = windowsFont("Snap ITC"))
+```
+
+```{r}
+pumpkins <- tuesdata$pumpkins
+```
+
+```{r}
+pumpkins <- pumpkins %>%
+  separate(id, sep = "-", into = c("year", "type"), remove = F) %>% 
+  mutate(year = as.numeric(year))
+```
+
+```{r}
+g.pumpkins <- pumpkins %>% 
+  filter(type == "P") 
+
+image.link <- "https://cdn.pixabay.com/photo/2017/10/01/11/36/pumpkin-2805140__480.png"
+
+#image.link <- "https://www.r-project.org/logo/Rlogo.png"
+g.pumpkins %>% 
+  mutate(image = image.link)
+```
+
+
+```{r}
+g.pumpkins.b <- g.pumpkins %>% 
+  filter(year == 2020) %>% 
+  mutate(image = image.link) %>%
+  mutate(place = as.numeric(place),
+         weight_lbs.number = parse_number(weight_lbs)) %>% 
+  arrange(place) %>% 
+  slice(1:10) 
+```
+
+
+```{r}
+dev.off()
+x11(width = 8, height = 10)
+
+# g.pumpkins.c <- g.pumpkins.b %>% 
+#   mutate(grower_name = str_pad(grower_name, side = "right", width = 20, pad = " "))
+
+text <-  paste0("<span style='color:black'>**Weight:** </span>", 
+                "<span style='color:red'>", g.pumpkins.b$weight_lbs, "</span>", 
+                "<span style='color:black'> pounds</span>", 
+                "<br><span style='color:black'>**Grower:**", " ", 
+                "*",g.pumpkins.b$grower_name, "*", "</span><br>",
+                "<span style='color:black'>**Country:**", " ", 
+                g.pumpkins.b$country, "</span>",
+                "<br>_________________________")
+
+p.1 <- g.pumpkins.b %>% #glimpse()
+  
+  mutate(hjust = 0,
+         vjust = .5,
+          text = text
+           ) %>% #glimpse()  
+  ggplot(aes(y= place, x = 10))+
+  geom_point(aes(size = weight_lbs.number), shape = 21, 
+             fill = alpha("#e37222", .8), color = "#e37222", 
+             stroke = 5,
+             show.legend = F)+
+  geom_image(aes(image=image), size = .15)+
+  ggtext::geom_richtext(aes(label =text, x = 10.003, 
+                            hjust = hjust,
+                            vjust = vjust), 
+                            color = "green", 
+                            fill = alpha("green", .1))+
+  scale_size(range = c(20,35))+
+  scale_y_reverse()+
+  scale_x_continuous(limits = c(9.99, 10.02))+ 
+  theme_void(base_family = )+
+  theme(plot.title = element_markdown(hjust = .3, color = "red", 
+                                      face = "bold", family = "font", size = 20),
+        plot.subtitle = element_markdown(hjust = .3, color = "red", 
+                                      face = "italic", family = "font", size = 15),
+        plot.caption = element_text(hjust = .3, color = "red", family = "font"),
+        plot.margin = margin(1,0,1,0, "cm"))+
+  labs(title = "Giant Pumpkins", 
+       subtitle = "Ranking in 2020<br>",
+       caption = "Source: BigPumpkins.com")
+```
+
+
+```{r}
+ggsave(filename = "week_43.png", 
+       plot = p.1,
+       width = 5, height = 10, units = "in")
+```
+
