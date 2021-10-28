@@ -1,6 +1,10 @@
 [Following the TidyTuesday Project](https://github.com/rfordatascience/tidytuesday)
 
 ---------------------------------------------
+
+# Week 44
+![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_44/week_44.png?raw=true)
+
 # Week 43
 ![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_43/week_43.png?raw=true)
 
