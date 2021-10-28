@@ -1,0 +1,75 @@
+```{r}
+dir.create("C:/rstats/tidytuesday/week_44")
+setwd("C:/rstats/tidytuesday/week_44")
+
+pacman::p_load(tidytuesdayR, tidyverse, ggmap, gganimate, ggtext, ggimage, here)
+```
+
+
+```{r}
+#tuesdata <- tidytuesdayR::tt_load(2021, week = 44)
+
+ultra_rankings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-26/ultra_rankings.csv')
+
+race <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-26/race.csv')
+
+
+
+windowsFonts(font = windowsFont("Snap ITC"))
+```
+
+
+```{r}
+race %>% glimpse()
+```
+
+```{r}
+df <- ultra_rankings %>% left_join(race)
+```
+
+```{r}
+df %>% glimpse()
+```
+
+
+```{r}
+df %>%
+  filter(distance > 150) %>% 
+  ggplot(aes(distance, time_in_seconds, fill = rank)) +
+  geom_point(shape = 21, color = "white")+
+  geom_smooth(method = "lm")+
+  theme_minimal()
+  
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
