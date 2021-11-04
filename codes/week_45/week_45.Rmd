@@ -1,0 +1,84 @@
+# Week 44
+```{r}
+pacman::p_load(tidytuesdayR, tidyverse, here, spData, spDataLarge, sf)
+library(patchwork)
+library(ggtext)
+```
+
+```{r}
+#dir.create(here::here("tidytuesday", "week_45"))
+setwd(here::here("tidytuesday", "week_45"))
+```
+
+```{r}
+windowsFonts(font = windowsFont("Snap ITC"))
+```
+
+```{r}
+coffee <- spData::coffee_data
+```
+
+```{r}
+bar.plot <- coffee %>%
+  drop_na() %>% 
+  mutate(name_long = fct_reorder(name_long, coffee_production_2016)) %>% 
+  ggplot(aes(x = coffee_production_2016, y = name_long, fill = coffee_production_2016))+
+  geom_col(show.legend = F)+
+  scale_fill_gradient(low ="#8D6E63" , high = "#3E2723", na.value = "gray90")+
+  theme_minimal()+
+  theme(aspect.ratio = 2/1,
+        title = element_text(color = "#3E2723"),
+        text = element_text(color = "#3E2723"),
+        axis.text = element_text(color = "#3E2723", family = "font"),
+        axis.title.x = element_markdown(),
+        )+
+  labs(x = "*in thousands of 60 kg bags produced*", y = "")
+```
+
+
+```{r}
+library(maptools)
+data("wrld_simpl")
+
+final.dt <- wrld_simpl %>%
+  st_as_sf() %>%
+  st_transform(crs = "+proj=robin") %>% 
+  mutate(code = as.character(ISO3)) %>%
+  left_join(coffee, by = c("NAME" = "name_long" )) %>% 
+  filter(NAME != "Antarctica")
+```
+
+```{r}
+map <- final.dt %>% 
+  ggplot(aes(fill =  coffee_production_2016))+
+  geom_sf(show.legend = F, lwd = 0)+
+  scale_fill_gradient(low ="#8D6E63" , high = "#3E2723", na.value = "gray90")+
+  theme_void()
+```
+
+```{r}
+p.1 <- map + inset_element(bar.plot, left = -0.3, bottom = 0, right = 0.4, top = .95, 
+                    align_to = 'full')+
+    plot_annotation(title = "Coffee  production",
+                    subtitle = "2016",
+                    caption = "Source: spData package",
+      theme = theme(plot.margin = margin(0,0,0,4, "cm"),
+                    title = element_text(color = "#3E2723"),
+                    text = element_text(color = "#3E2723"),
+                    plot.title = element_markdown(hjust = .5, size = 25, 
+                                                  family = "font"),
+                    plot.subtitle = element_markdown(hjust = .5, family = "font"),
+                    plot.caption = element_text(hjust = 0)))
+
+
+```
+
+```{r}
+ggsave("week_45.2.png",
+		plot = p.1,
+		device = ragg::agg_png(width = 16, 
+						height = 9, 
+						units = "in",
+						res = 300))
+```
+
