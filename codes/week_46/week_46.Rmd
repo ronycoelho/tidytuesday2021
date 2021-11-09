@@ -1,0 +1,65 @@
+# 
+```{r}
+#remotes::install_github("afrimapr/afrilearndata")
+
+library(afrilearndata)
+library(tidyverse)
+library(rayshader)
+library(ggalt)
+
+options(scipen = 999)
+```
+
+```{r}
+min <- min(africountries$pop_est, na.rm = T)
+max <- max(africountries$pop_est, na.rm = T)
+
+(max-min)/5
+
+breaks <- c(500000, 30500000, 60500000, 90500000, 120500000, 150500000)
+
+africountries %>% glimpse()
+
+africountries$centroid <- sf::st_centroid(africountries$geometry)
+
+```
+
+
+c("cross", "box", "orthogonal",
+#
+```{r}
+plot.gg <- africountries %>% 
+  ggplot(aes(fill = pop_est))+
+  geom_sf()+
+  #geom_sf_text(aes(label = name), size = 1)+ 
+  coord_sf()+
+  scale_fill_distiller(direction = 1, na.value = "gray50", palette = 3,
+                      label = scales::label_number(big.mark = "."))+
+  theme_light() +
+  theme(legend.position = c(.2, .3),
+        legend.background = element_rect(fill = "transparent"))+
+  guides(fill = guide_colorsteps())+
+  labs(title = "Estimated Population", fill = "")
+
+plot.gg
+```
+
+#
+```{r}
+# https://www.rayshader.com/
+
+rayshader::plot_gg(plot.gg, 
+                   soliddepth = - 100,
+                   multicore = T,
+                   pointcontract = .7,
+                   offset_edges = T
+                  
+                   
+                  
+)
+
+# I don't know how to save with code
+
+#save_3dprint(filename_stl, maxwidth = "120mm", clear=TRUE)
+```
+
