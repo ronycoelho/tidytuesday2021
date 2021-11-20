@@ -1,0 +1,82 @@
+
+```{r}
+library(tidyverse)
+library(raster)
+library(afrilearndata)
+library(sf)
+# https://github.com/schochastics/roughsf
+library(roughsf)
+
+countries <- afrilearndata::africountries 
+capitals <- afrilearndata::africapitals %>% as.data.frame()
+```
+
+# Color
+```{r}
+paletteer::paletteer_d("ggsci::springfield_simpsons")
+
+length(unique(countries$name))
+country.fill <- colorRampPalette(paletteer::paletteer_d("ggsci::springfield_simpsons"))
+color <- country.fill(length(unique(countries$name))+1)
+scales::show_col(color)
+```
+
+# Map
+```{r}
+# see https://github.com/schochastics/roughsf
+countries <- st_cast(countries, "POLYGON")
+
+countries$fill <- color 
+countries$stroke <- 1.2
+countries$fillweight <- 0.5
+countries$fillstyle <-  rep(c("hachure", "solid", "zigzag", "cross-hatch", "dots", "dashed", "zigzag-line"), 10)[1:52]
+
+countries <- st_cast(countries, "POLYGON")
+
+roughsf::roughsf(list(countries),
+                 title = "Africa", 
+                 caption = "\n#TidyTuesdayProject\nand\n#BlackInDataWeek",
+                 title_font = "80px Pristina", font = "30px Pristina", caption_font = "30px Pristina",
+                 roughness = 1.5, bowing = 1, simplification = 1,
+                 width = 800, height = 1000, 
+)
+```
+
+
+```{r}
+capitals <- st_sf(capitals)
+
+st_crs(capitals) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
+capitals$size <- 10
+
+capitals$color <- "blue"
+
+capitals$label <- capitals$capitalname
+
+capitals$label_pos <- sample(c("n", "e", "s", "w"), 51, replace = T)
+```
+
+#
+```{r}
+capitals$label_pos <- sample(c("n", "e", "s", "w"), 51, replace = T)
+
+map <- roughsf::roughsf(list(countries, capitals),
+                 roughness = 2, 
+                 bowing = 1, 
+                 simplification = 1,
+                 title_font = "80px Pristina", 
+                 font = "22px Pristina", 
+                 caption_font = "30px Pristina",
+                 title = "Africa", 
+                 caption = "\n#TidyTuesdayProject\nand\n#BlackInDataWeek",
+                 width = 800, 
+                 height = 900, 
+)
+```
+
+#
+```{r}
+roughsf::save_roughsf(rsf = map, file = "week_47.png")
+```
+
