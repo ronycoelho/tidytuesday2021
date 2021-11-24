@@ -1,0 +1,121 @@
+#
+```{r}
+pacman::p_load(tidyverse, janitor, tidytuesdayR, ggside, showtext)
+```
+
+#
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2021-11-23')
+
+extrafont::loadfonts(device="win")
+font <- extrafont::fonts()[111]
+```
+
+#
+```{r}
+writers <- tuesdata$writers
+directors <- tuesdata$directors
+episodes <- tuesdata$episodes
+imdb <- tuesdata$imdb
+```
+
+#
+```{r}
+dt <- writers %>% 
+  left_join(directors) %>% 
+  left_join(episodes)
+```
+
+```{r}
+dt %>% glimpse()
+imdb %>% glimpse()
+
+dt %>% 
+  count(season_number)
+
+imdb %>% 
+  count(season)
+```
+
+```{r}
+dt <- dt %>% 
+  mutate(id = paste0(season_number, "_", episode_number), .before = story_number)
+
+imdb <- imdb %>% 
+  mutate(id = paste0(season,"_", ep_num), .before = season)
+```
+
+```{r}
+dt <- dt %>% 
+  right_join(imdb, by = "id")
+
+dt %>% 
+  #count(season_number)
+  glimpse()
+```
+
+```{r}
+dt.2 <- dt %>% 
+  drop_na(season_number) %>% 
+  group_by(season_number) %>% 
+  mutate(min = min(rating.y),
+         max = max(rating.y),
+         viewers = ifelse(rating.y == min, uk_viewers, NA),
+         viewers = ifelse(rating.y == max, uk_viewers, NA)) %>%
+  ungroup() %>% 
+  mutate(season_number = fct_rev(as.factor(season_number)),
+         label.season = paste0("Season ", season_number))  
+```
+
+```{r}
+glimpse(dt.2)
+```
+
+# See: 
+```{r}
+plot <- dt.2 %>% 
+  ggplot(aes(y = season_number, size = viewers))+
+  geom_segment(aes(yend = season_number,
+                   x = min, xend = max), 
+               size = 2,
+               lineend = "round",
+               color = "#FFE8B3")+
+  geom_point(aes(x = min), color = "#a3c4dc", shape = 21, fill = alpha("#a3c4dc",.5))+
+  geom_point(aes(x = max), color = "#a3c4dc", shape = 21, fill = alpha("#a3c4dc",.5))+
+  scale_y_discrete(label = unique(dt.2$label.season)[12:1])+
+  scale_size(range = c(3,10),
+             name = "Viewers (Millions)")+
+  hrbrthemes::theme_ipsum_pub(base_family = font, 
+                              plot_title_family = font)+
+  theme(panel.grid = element_line(linetype = "dashed", color = "#a3c4dc"),
+        plot.title =  element_text(vjust = -10, color = "#073b4c", size = 30),
+        plot.subtitle =  element_text(vjust = -25, color = "#073b4c", size = 15),
+        plot.caption =  element_text(color = "#073b4c", size = 10),
+        legend.position = "top",
+        legend.direction = "horizontal",
+        axis.text.x = element_text(color = "#073b4c", size = 15),
+        axis.title.x = element_text(color = "#073b4c", size = 15),
+        axis.text.y = element_text(vjust = -1, size = 20, 
+                                   color = "#073b4c",
+                                   face = "italic",
+                                   margin = margin(l = 20, r = -50)))+
+  #guides(size = guide_legend(title.position = "top"))+
+  labs(y = "", 
+       x = "IMDB Rating",
+       title = "Dr. Who - IMDB Rating",
+       subtitle = "By season - Minimum and maximum rate",
+       caption = "Source: datardis package")+
+  guides(size=guide_legend(title.position="top",
+                           title.hjust =0.5,
+                           title.theme = element_text(size = 15, color = "#073b4c"),
+                           label.position = "bottom",
+                           label.theme = element_text(size = 15, color = "#073b4c"),
+                           )
+                          )
+```
+
+
+```{r}
+ggsave(filename = "week_48.png", plot = plot, width = 16, height = 9)
+```
+
