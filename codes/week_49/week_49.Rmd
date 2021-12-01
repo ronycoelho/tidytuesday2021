@@ -1,0 +1,103 @@
+```{r}
+library(tidyverse)
+library(tidytuesdayR)
+library(janitor)
+library(patchwork)
+```
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2021-11-30')
+
+matches <- tuesdata$matches
+```
+
+```{r}
+matches %>% 
+  glimpse()
+```
+
+```{r}
+d <- matches %>% #head() %>%
+  mutate(year = str_extract(match_date, "\\d{4}"))%>% 
+  count(year, winner, sort = T) %>% 
+  mutate(winner = fct_reorder(winner, n)) %>% 
+  filter(winner != "No result") %>% 
+  filter(!str_detect(winner, "conceded"))
+```
+
+
+```{r}
+p.1 <- d %>% 
+  ggplot()+
+  geom_point(aes(year, winner, size = n), 
+             fill = alpha("brown", .5), shape = 21, 
+             color = "white", show.legend = F)+
+  geom_text(aes(year, winner, label = n), 
+            size = 5,
+            color = "white", fontface = "bold")+
+  scale_size(range = c(5,20))+
+  coord_cartesian(clip = "off")+
+  theme(
+    plot.title = element_text(color = "white",  size =25, face = "bold"),
+    axis.text = element_text(color = "white", size =15, face = "bold"),
+    plot.background = element_rect(fill = "#10451D", color = NA), 
+    panel.background = element_rect(fill = "#155D27", color = "white"),
+    panel.grid = element_line(color = alpha("white", .4))
+    
+    
+  )+
+  labs(
+    title = "Matches won per year",
+    y = "", x = "")
+```
+
+
+```{r}
+p.2 <- d %>% 
+  group_by(winner) %>% 
+  summarise(total = sum(n)) %>%
+  ungroup() %>% 
+  mutate(winner = fct_reorder(winner, total)) %>% 
+  ggplot(aes(total, winner))+
+  geom_col(color = "white", fill = alpha("brown", .5))+
+  scale_x_continuous(limits = c(0,220))+
+  geom_text(aes(total, winner, label = total ), 
+            size =5,
+            hjust = 0, nudge_x = 2, color = "white", fontface = "bold" )+
+  theme(
+    plot.title = element_text(color = "white", size =15, face = "bold", hjust = .5),
+    axis.text = element_text(color = "white", size =15, face = "bold"),
+    axis.text.y = element_blank(),
+    plot.background = element_rect(fill = "#10451D", color = NA), 
+    panel.background = element_rect(fill = "#155D27", color = "white"),
+    panel.grid = element_line(color = alpha("white", .4)))+
+  labs(
+    title = "Accumulated won \nmatches",
+    y = "", x = "")
+
+```
+
+```{r}
+plot <- p.1 + p.2 + 
+  plot_layout(widths = c(5,1))+
+  plot_annotation(
+    title = "Cricket World Cup",
+    caption = "Source: ESPN Cricinfo",
+    theme = theme(
+    plot.title = element_text(color = "white", hjust = .5, size = 30, face = "bold"),
+    plot.caption = element_text(color = "white", hjust = .5, size = 15, face = "bold"),
+    axis.text = element_text(color = "white", size =15, face = "bold"),
+    axis.text.y = element_blank(),
+    plot.background = element_rect(fill = "#10451D", color = NA), 
+    panel.background = element_rect(fill = "#155D27", color = "white"),
+    panel.grid = element_line(color = alpha("white", .4)),
+    plot.margin = margin(1,2,1,1, "cm")))
+```
+
+```{r}
+ggsave(filename = "week_49.png",plot = plot, width = 16, height = 9
+    
+  
+)
+```
+
