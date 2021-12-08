@@ -2,6 +2,9 @@
 
 ---------------------------------------------
 
+# Week 50
+![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_50/week_50.1.png?raw=true)
+
 # Week 49
 ![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_49/week_49.png?raw=true)
 
