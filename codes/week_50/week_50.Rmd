@@ -1,0 +1,95 @@
+```{r}
+library(tidyverse)
+library(janitor)
+library(ggraph)
+library(tidygraph)
+library(extrafont)
+```
+
+#https://stackoverflow.com/questions/50353923/generate-radar-charts-with-ggplot2
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2021-12-07')
+
+loadfonts()
+
+font.1 <- fonts()[38]
+```
+
+```{r}
+spiders <- tuesdata$spiders
+```
+
+```{r}
+spiders %>% glimpse()
+```
+
+```{r}
+dt <- spiders %>% 
+  filter(distribution == "Brazil") %>% 
+  mutate(decade = 10*(year %/% 10)) %>%
+  #select(year, family, species) %>%
+  add_count(family, species) %>% 
+  group_by(family) %>% 
+  mutate(early.decade = min(decade)) %>%
+  ungroup() %>% 
+  mutate(family.early = paste0(family, " (", early.decade, ")")) %>% 
+  arrange(year) %>% 
+  filter(n > 1)
+```
+
+```{r}
+dt <- dt %>% 
+  mutate(family.year = paste0(family, decade)) %>% 
+  rename(from = family.early, to = species)
+
+net <- as_tbl_graph(dt, directed = T)
+```
+
+
+```{r}
+y.annotate <- -7
+
+ggraph(net, layout = 'linear')+  
+  geom_edge_arc(aes(edge_colour = factor(from)), 
+                #edge_linetype = "dashed",
+                edge_alpha=0.2, edge_width=.2,  show.legend = F)+
+  geom_edge_arc(edge_colour = alpha("white", .5), 
+                edge_linetype = "dashed",
+                edge_alpha=0.2, edge_width=.8,  show.legend = F) +
+  geom_node_text(aes(label=name), 
+                 color = c(rep("white", 16), rep("yellow", 70)), 
+                 angle=45, 
+                 hjust=1, 
+                 nudge_y = -1.1, 
+                 size=3.5,
+                 fontface = "bold")+
+  coord_cartesian(clip = "off")+
+  annotate(geom = "text", x = 5, y = y.annotate, label = "Famliy", 
+           color = "white", family = font.1, size = 10)+
+  annotate(geom = "text", x = 5, y = y.annotate + (-2), 
+           label = "(with the decade that was discovered)", 
+           color = "white", family = font.1, size = 10)+
+  annotate(geom = "text", x = 50, y = y.annotate, label = "Species", 
+           color = "yellow", family = font.1, size = 10)+
+  # Title
+  annotate(geom = "text", x = 6, y = 30, label = "Spiders in Brazil", 
+           color = "white", family = font.1, size = 22)+
+  # Subtititle
+  annotate(geom = "text", x = 9, y = 28, label = "Most Common Families and species", 
+           color = "yellow", family = font.1, size = 15)+
+  theme(
+    plot.title = element_text(color = "white", hjust = .1, vjust = -4, 
+                              family = font.1, size = 50),
+    plot.subtitle = element_text(color = "yellow", 
+                                 hjust = .15, font.1, size = 35, vjust = -4.5),
+    plot.caption = element_text(color = "yellow", 
+                                font.1, size = 30),
+    plot.background = element_rect(color = "black", fill = "black"),
+    panel.background = element_rect(color = "black", fill = "black"),
+    plot.margin = margin(.5,1,1,2, "cm"))+
+  labs(#title = "Spiders in Brazil",
+       #subtitle = "Families and species",
+       caption =  "Source: World Spider Database")
+```
+
