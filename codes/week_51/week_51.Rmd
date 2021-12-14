@@ -1,0 +1,207 @@
+
+```{r}
+library(tidyverse)
+library(patchwork)
+library(ggtext)
+```
+
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2021-12-14')
+```
+
+
+```{r}
+lyrics <- tuesdata$lyrics
+studio_album_tracks <- tuesdata$studio_album_tracks
+related_artists <- tuesdata$related_artists
+
+tuesdata$studio_album_tracks %>% 
+  glimpse()
+```
+
+
+```{r}
+# Just spice girls
+lyrics %>%
+  count(artist_name)
+
+# Just spice girls
+studio_album_tracks %>% 
+  count(artist_name)
+
+# 21 artist
+related_artists %>% #glimpse()
+    count(artist_name)
+  
+df <- related_artists %>% 
+  left_join(studio_album_tracks) %>% 
+  filter(artist_name == "Spice Girls")
+```
+
+```{r}
+
+range(df$popularity)
+range(df$followers_total)
+
+range(studio_album_tracks$loudness)
+```
+
+
+```{r}
+df %>% 
+  count(genres, sort = T)
+
+df %>% 
+  glimpse()
+
+```
+
+
+```{r}
+theme_set(
+  hrbrthemes::theme_modern_rc()+
+  theme(axis.title.y = element_text(color = "yellow", size = 15, face = "italic"),
+        axis.title.x = element_text( size = 15, face = "italic"),
+        legend.position = "bottom",
+        legend.title = element_text(face = "bold", color = "yellow"),
+        legend.direction = "horizontal"))
+
+
+```
+
+
+#positive
+```{r}
+p1 <- df %>% 
+  ggplot(aes(y = danceability, x= energy, fill = genres))+
+  geom_jitter(width = .2, size = 5, alpha = .7, shape = 21, color = "white", show.legend = F)+
+  geom_smooth(method = "lm", se = F, show.legend = F)+
+  ggsci::scale_color_d3()
+```
+
+#positive
+```{r}
+range(df$loudness)
+
+p2 <- df %>% 
+  ggplot(aes(y = danceability, x= loudness, fill = genres))+
+  geom_jitter(width = .2, size = 5, alpha = .7, shape = 21, color = "white", show.legend = F)+
+  geom_smooth(method = "lm", se = F, show.legend = F)+
+  ggsci::scale_color_d3()
+  
+```
+
+#negative
+```{r}
+range(df$mode)
+p3 <- df %>% 
+  ggplot(aes(y = danceability, x = mode, fill = genres))+
+  geom_jitter(width = .1, size = 5, alpha = .7, shape = 21, color = "white", show.legend = F)+
+  geom_smooth(method = "lm", se = F, show.legend = F)+
+  scale_x_continuous(breaks = c(0,1))+
+  ggsci::scale_color_d3()
+  
+```
+
+#neutral
+```{r}
+range(df$key)
+
+p4 <- df %>% 
+  ggplot(aes(y = danceability, x = key, fill = genres))+
+  geom_jitter(width = .2, size = 5, alpha = .7, shape = 21, color = "white", show.legend = F)+
+  geom_smooth(method = "lm", se = F, show.legend = F)+
+  ggsci::scale_color_d3()
+  
+```
+
+
+# positive
+```{r}
+range(df$speechiness)
+unique(df$speechiness)
+
+p5 <- df %>% 
+  ggplot(aes(y = danceability, x = speechiness , fill = genres))+
+  geom_jitter(width = .2, size = 5, alpha = .7, shape = 21, color = "white", show.legend = F)+
+  geom_smooth(method = "lm", se = F, show.legend = F)+
+  ggsci::scale_color_d3()
+  
+```
+
+
+# negative
+```{r}
+df$acousticness
+
+p6 <- df %>% 
+  ggplot(aes(y = danceability, x = acousticness , fill = genres))+
+  geom_jitter(width = .2, size = 5, alpha = .7, shape = 21, color = "white", show.legend = F)+
+  geom_smooth(method = "lm", se = F, show.legend = F)+
+  ggsci::scale_color_d3()
+  
+```
+
+#neutral
+```{r}
+df$instrumentalness
+
+p7 <- df %>% 
+  ggplot(aes(y = danceability, x = instrumentalness, fill = genres))+
+  geom_jitter(width = .2, size = 5, alpha = .7, shape = 21, color = "white", show.legend = T)+
+  geom_smooth(method = "lm", se = F, show.legend = F)+
+  ggsci::scale_color_d3()+
+  labs(fill = "Genres")+
+  guides(fill = guide_legend(title.position = "bottom", 
+                             title.hjust = .5,))
+  
+```
+
+#negative
+```{r}
+p8 <- df %>% 
+  ggplot(aes(y = danceability, x = liveness  , fill = genres))+
+  geom_jitter(width = .2, size = 5, alpha = .7, shape = 21, color = "white", show.legend = F)+
+  geom_smooth(method = "lm", se = F, show.legend = F)+
+  ggsci::scale_color_d3()
+  
+```
+
+#positive
+```{r}
+p9 <- df %>% 
+  ggplot(aes(y = danceability, x = valence , fill = genres))+
+  geom_jitter(width = .2, size = 5, alpha = .7, shape = 21, color = "white", show.legend = F)+
+  geom_smooth(method = "lm", se = F, show.legend = F)+
+  ggsci::scale_color_d3()
+  
+```
+
+
+```{r}
+# grid.1 <- p1 + p2 + p5 + p9 + plot_layout(ncol = 4) 
+# grid.2 <- p3 + p6 + p8 + plot_layout(ncol = 3) 
+# grid.3 <- p4 + p7 + plot_layout(ncol = 2) 
+#   
+# grid.1 / grid.2 / grid.3 +
+#   patchwork::plot_annotation(title = "Danceability on the SPICE GIRLS Musics")
+```
+
+```{r}
+title.markadown <- "<span style='font-size:25pt; color:white'>*Danceability*</span> on the <span style='font-size:25pt; color:yellow'; >*SPICE GIRLS*</span> Musics"
+
+caption.markadown <- "<span style='color:yellow'>*Source:*</span> spotifyr and geniusr packages"
+```
+
+
+```{r}
+(p1 + p2 + p5 + p9 + plot_layout(ncol = 4))/ 
+(p3 + p6 + p8 + plot_layout(ncol = 3))/ 
+(p4 + p7 + plot_layout(ncol = 2, guides = "collect" )) +
+  patchwork::plot_annotation(title = title.markadown,
+                             caption = caption.markadown,
+                             theme = theme(plot.title = element_markdown(),
+                                           plot.caption = element_markdown()))
+```
+
