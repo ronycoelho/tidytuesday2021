@@ -1,0 +1,157 @@
+```{r}
+library(tidyverse)
+library(RVerbalExpressions)
+library(patchwork)
+library(paletteer)
+library(ggimage)
+library(grid)
+library(png)
+library(extrafont)
+library(ggtext)
+```
+
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2021-12-21')
+```
+
+```{r}
+starbucks <- tuesdata$starbucks
+
+img <- "https://logodownload.org/wp-content/uploads/2017/10/Starbucks-logo.png"
+img <- png::readPNG(RCurl::getURLContent(img))
+img.raster <- rasterGrob(img, interpolate=TRUE, width = 7, height = 7, default.units = "cm")
+```
+
+```{r}
+starbucks %>% 
+  glimpse()
+
+
+RVerbalExpressions::rx_anything_but(value = "-")
+```
+
+
+```{r}
+df <- starbucks %>% #head(100) %>% 
+  #filter(milk == 0) %>% 
+  #filter(size == "short") %>%
+  #select(product_name) %>% 
+  mutate(product_name = str_extract(product_name, rx_anything_but(value = "-")),
+         product_name = str_trim(product_name, side = "both"),
+         product_name = str_to_title(product_name)) %>% 
+  group_by(product_name) %>% 
+  summarise(caffeine_mg_mean = mean(caffeine_mg),
+            sugar_g_mean = mean(sugar_g)) %>% 
+  ungroup() %>% 
+  filter(caffeine_mg_mean != 0) %>%
+  mutate(product_name = paste0(" ", product_name, " ")) %>% 
+  mutate(length.name = str_length(product_name),
+         max = max(length.name)) %>% 
+  mutate(product_name = str_pad(product_name, side = "both", width = max+2, pad = "-")) %>% 
+  mutate(product_name = fct_reorder(product_name, caffeine_mg_mean)) %>%
+  #mutate(leng = str_length(product_name)) %>% 
+  #arrange(leng)
+  arrange(product_name) 
+```
+
+
+```{r}
+glimpse(df)
+
+theme_set(theme_minimal()+
+            theme(#panel.grid = element_blank(),
+                  panel.grid.major.y = element_line(linetype = 2),
+                  panel.grid.minor = element_blank(),
+                  plot.title = element_text(color = "white", size = 20),
+                  plot.title.position = "panel",
+                  axis.text = element_text(color = "white", size = 15),
+                  axis.title = element_text(color = "white", size = 20)))
+
+colors <- colorRampPalette(c("#583101", "#ffedd8"))
+
+colors.2 <- colorRampPalette(c("#cec288", "#F9F4E4"))
+
+colors <- colors(length(df$product_name))[length(df$product_name):1]
+
+colors.2 <- colors.2(length(df$product_name))[length(df$product_name):1]
+
+scales::show_col(colors.2)
+
+df$product_name
+```
+
+```{r}
+df$colors <- colors
+```
+
+
+```{r}
+df <- df %>% 
+  arrange(sugar_g_mean) %>% 
+  mutate(color.2 = colors.2) %>% 
+  arrange(product_name)
+```
+
+
+```{r}
+p1 <- df %>% 
+  ggplot(aes(y = product_name, x = caffeine_mg_mean))+
+  geom_col(fill = df$colors)+
+  scale_x_reverse()+
+  scale_y_discrete(position = "right")+
+  coord_cartesian(clip = "off")+
+  annotation_custom(img.raster, xmin = -150, xmax = -250, ymin = 15, ymax = 30)+
+  theme(axis.text.y.right = element_text(hjust = .5, color = "white", 
+                                         face = "bold", size = 15),
+        axis.title.y = element_blank())+
+  labs(title = "Caffeine", x = "Milligrams")+
+  #theme_bw()+
+  theme(plot.title = element_text(hjust = 1),
+        axis.text.y.right = element_text(vjust = .6, hjust = .5))
+
+#ggsave(p1, filename = "p1.png", width = 45, height = 50, units = "cm", dpi = 50)
+```
+
+
+```{r}
+p2 <- df %>% 
+  filter(caffeine_mg_mean != 0) %>% 
+  mutate(product_name = fct_reorder(product_name, caffeine_mg_mean)) %>% 
+  ggplot(aes(y = product_name, x = sugar_g_mean))+
+  geom_col(fill = df$color.2)+
+    coord_cartesian(clip = "off")+
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank())+
+  labs(title = "Sugar", x = "Grams")
+```
+
+
+```{r}
+plot <- p1 + p2 +
+  plot_annotation(title = "STARBUCKS *Coffees*",
+                  subtitle = "Average of Caffeine and Sugar \nper product",
+                  caption = "Source: Official Starbucks Nutritional dataset from the pdf Starbucks Coffee Company Beverage Nutrition Information",
+                  theme = 
+                    theme(plot.background = element_rect(fill = "#006341"),
+                          plot.title = element_markdown(hjust = .5, 
+                                                    color = "white", 
+                                                    face = "bold",
+                                                    size = 40),
+                          plot.subtitle = element_text(hjust = .5, 
+                                                       color = "white", 
+                                                       face = "italic",
+                                                       size = 20),
+                          plot.caption = element_text(color = "white", 
+                                                      hjust = .5,
+                                                      size =15),
+                          plot.margin = margin(1, .5, 1, .5, "cm"))
+                    
+                    )
+```
+
+
+```{r}
+ggsave(plot, filename = "~/tidytudesday/week_52/week_52.png", width = 45, height = 50, units = "cm", dpi = 600)
+```
+
