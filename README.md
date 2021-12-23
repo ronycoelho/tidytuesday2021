@@ -2,6 +2,9 @@
 
 ---------------------------------------------
 
+# Week 52
+![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_52/week_52.png?raw=true)
+
 # Week 51
 ![](https://github.com/ronycoelho/tidytuesday2021/blob/main/codes/week_51/week_51.png?raw=true)
 
